@@ -16,7 +16,5 @@ class Core(object):
         with open(path / "solve.py", "w") as f:
             f.write(pwn_template)
             
-    
-    
     def web(self):
         return "web"

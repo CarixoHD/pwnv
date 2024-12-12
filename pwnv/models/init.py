@@ -6,5 +6,6 @@ from pathlib import Path
 
 class Init(BaseModel):
     env_path: Path
+    challenge_tags: list[str]
     ctfs: list[CTF] | list[None]
     challenges: list[Challenge] | list[None]

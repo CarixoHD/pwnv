@@ -11,14 +11,6 @@ from InquirerPy.base.control import Choice
 
 config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
 
-
-def get_challenge_by_id(id: int, json: dict) -> dict:
-    for challenge in json["challenges"]:
-        if challenge["id"] == id:
-            return challenge
-    return None
-
-
 def config_exists() -> bool:
     def decorator(func):
         @wraps(func)
@@ -31,8 +23,20 @@ def config_exists() -> bool:
                 )
 
         return wrapper
-
     return decorator
+
+def ctfs_exists() -> bool:
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if get_ctfs():
+                return func(*args, **kwargs)
+            else:
+                print("[bold red]:x: Error:[/] No CTFs found.")
+    
+        return wrapper
+    return decorator
+
 
 
 def read_config() -> dict:
@@ -54,6 +58,14 @@ def get_challenges() -> list[Challenge]:
     config = read_config()
     return [Challenge(**challenge) for challenge in config["challenges"]]
 
+def get_tags() -> list[str]:
+    config = read_config()
+    return config["challenge_tags"]
+
+def set_tags(tags: list[str]):
+    config = read_config()
+    config["challenge_tags"] = tags
+    write_config(config)
 
 def select_fuzzy(choices: List[CTF | Challenge], message: str) -> CTF | Challenge:
     if isinstance(choices[0], CTF):
@@ -61,7 +73,7 @@ def select_fuzzy(choices: List[CTF | Challenge], message: str) -> CTF | Challeng
             lambda choice: Choice(
                 name=f"{choice.name:<50} ({choice.created_at.year})", value=choice
             ),
-            choices,
+            sorted(choices, key=lambda ctf: ctf.created_at, reverse=True),
         )
     else:
         ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
@@ -74,6 +86,7 @@ def select_fuzzy(choices: List[CTF | Challenge], message: str) -> CTF | Challeng
     return inquirer.fuzzy(
         message=message,
         choices=options,
+        border=True,
     ).execute()
 
 
@@ -82,7 +95,7 @@ def confirm(message: str) -> bool:
 
 
 def is_duplicate(
-    name: str | None, path: Path | None, model_list: List[CTF | Challenge]
+    *, name: str | None = None, path: Path | None = None, model_list: List[CTF | Challenge]
 ) -> bool:
     if path is None:
         return any(model.name == name for model in model_list)

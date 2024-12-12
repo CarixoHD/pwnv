@@ -33,7 +33,8 @@ def init(
         default=True,
     )
 
-    if app_config_path.exists():
+    testing = True
+    if app_config_path.exists() and not testing:
         print("[bold red]:x: Error:[/] Config file already exists.")
         return
 
@@ -45,7 +46,7 @@ def init(
         progress.add_task(description="Initializing environment", start=False)
         _create_app_config(app_config_path)
 
-        init_model = Init(env_path=env_path, ctfs=[], challenges=[])
+        init_model = Init(env_path=env_path, challenge_tags=["buffer overflow", "fastbin dup"], ctfs=[], challenges=[])
         if not _setup_virtualenv(env_path):
             return
 

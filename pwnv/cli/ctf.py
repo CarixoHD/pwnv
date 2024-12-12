@@ -30,7 +30,7 @@ def add(name: str, path: Annotated[Path, "Path to the CTF directory"] = Path.cwd
         return
 
     path = path / name
-    if is_duplicate(None, path, ctfs):
+    if is_duplicate(path=path, model_list=ctfs):
         print(f"[red]:x: Error:[/] CTF with name {name} or path {path} already exists.")
         return
 
