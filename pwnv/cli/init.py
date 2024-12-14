@@ -23,6 +23,11 @@ def init(
         typer.Option(help="Use environment directory as default CTF path"),
     ] = True,
 ):
+    uv = shutil.which("uv")
+    if uv is None:
+        print("[red]:x: Error:[/] uv binary not found in PATH. Please install it.")
+        return
+    
     app_config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
     # env_path = Path(env_path).resolve() if env_path != "." else Path.cwd() / "pwnvenv"
     env_path = Path(env_path).resolve()
@@ -73,11 +78,6 @@ def _create_app_config(config_path: Path):
 
 
 def _setup_virtualenv(env_path: Path) -> bool:
-    uv = shutil.which("uv")
-    if uv is None:
-        print("[red]:x: Error:[/] uv binary not found in PATH. Please install it.")
-        return False
-
     env_path.mkdir(parents=True, exist_ok=True)
     ret = subprocess.run(["uv", "venv", str(env_path)], capture_output=True)
     if ret.returncode != 0:
