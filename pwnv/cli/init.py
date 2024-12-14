@@ -10,7 +10,6 @@ from pwnv.models import Init
 
 app = typer.Typer(no_args_is_help=True)
 
-testing = True
 
 
 @app.command()
