@@ -1,5 +1,5 @@
 import typer
-from pwnv.models import Challenge, CTF
+from pwnv.models import Challenge
 from pwnv.models.challenge import Category, Solved
 from pwnv.setup import Core
 from pwnv.cli.utils import (
@@ -20,7 +20,6 @@ from pwnv.cli.utils import (
     get_current_challenge,
 )
 from pathlib import Path
-from typing import List
 from InquirerPy import inquirer
 from typing import Annotated
 
@@ -123,10 +122,10 @@ def remove():
             "Challenge directory is not empty. Are you sure you want to remove it?",
             False,
         ):
-        #if not inquirer.confirm(
-        #    "Challenge directory is not empty. Are you sure you want to remove it?",
-        #    default=False,
-        #).execute():
+            # if not inquirer.confirm(
+            #    "Challenge directory is not empty. Are you sure you want to remove it?",
+            #    default=False,
+            # ).execute():
             return
 
     challenges.remove(challenge)
@@ -152,50 +151,60 @@ def list_(
         print("[bold red]:x: Error:[/] No challenges found.")
         return
     if ctf and not all:
-        challenges = list(filter(lambda challenge: challenge.ctf_id == ctf.id, challenges))
-    
+        challenges = list(
+            filter(lambda challenge: challenge.ctf_id == ctf.id, challenges)
+        )
+
     while True:
         challenge = select_challenge(challenges, "Select a challenge to view:")
         show_challenge(challenge)
         input("Press Enter to continue...")
 
+
 @app.command(name="filter")
 @config_exists()
 def filter_():
     challenges = get_challenges()
-    solved_challenges = list(filter(lambda challenge: challenge.solved == Solved.solved, challenges))
+    solved_challenges = list(
+        filter(lambda challenge: challenge.solved == Solved.solved, challenges)
+    )
     if not solved_challenges:
         print("[bold red]:x: Error:[/] No solved challenges found.")
         return
-    
 
-    #chosen_tags = select_tags("Select tags to filter by:")
-    #filtered_challenges = list(filter(lambda challenge: any(tag in challenge.tags for tag in chosen_tags), solved_challenges))
-    
-    #if not filtered_challenges:
+    # chosen_tags = select_tags("Select tags to filter by:")
+    # filtered_challenges = list(filter(lambda challenge: any(tag in challenge.tags for tag in chosen_tags), solved_challenges))
+
+    # if not filtered_challenges:
     #    print("[bold red]:x: Error:[/] No challenges found.")
     #    return
-    while True:    
+    while True:
         chosen_tags = select_tags("Select tags to filter by:")
-        filtered_challenges = list(filter(lambda challenge: any(tag in challenge.tags for tag in chosen_tags), solved_challenges))
-    
+        filtered_challenges = list(
+            filter(
+                lambda challenge: any(tag in challenge.tags for tag in chosen_tags),
+                solved_challenges,
+            )
+        )
+
         if not filtered_challenges:
             print("[bold red]:x: Error:[/] No challenges found.")
         challenge = select_challenge(filtered_challenges, "Select a challenge to view:")
         show_challenge(challenge)
         input("Press Enter to continue...")
-    
-    
 
 
 @app.command()
 @config_exists()
 def solve(
-    no_tags: Annotated[bool, typer.Option(help="Do not add tags to the challenge")] = False,
-    no_flag: Annotated[bool, typer.Option(help="Do not add a flag to the challenge")] = False,
+    no_tags: Annotated[
+        bool, typer.Option(help="Do not add tags to the challenge")
+    ] = False,
+    no_flag: Annotated[
+        bool, typer.Option(help="Do not add a flag to the challenge")
+    ] = False,
 ):
     challenges = get_challenges()
-    
 
     unsolved_challenges = list(
         filter(lambda challenge: challenge.solved == Solved.unsolved, challenges)
@@ -211,7 +220,9 @@ def solve(
         challenge = select_challenge(
             unsolved_challenges, "Select a challenge to mark as solved:"
         )
-    if not confirm(f"Are you sure you want to mark challenge {challenge.name} as solved?", True):
+    if not confirm(
+        f"Are you sure you want to mark challenge {challenge.name} as solved?", True
+    ):
         return
     index = challenges.index(challenge)
     challenge.solved = Solved.solved
@@ -240,7 +251,9 @@ def solve(
         set_tags(list(set(tags)))
         challenge.tags = list(set(chosen_tags))
     if not no_flag:
-        while not (flag := inquirer.text(message="Enter the flag for the challenge:").execute()):
+        while not (
+            flag := inquirer.text(message="Enter the flag for the challenge:").execute()
+        ):
             print("[red]:x: Error:[/] Flag cannot be empty.")
 
         challenge.flag = flag

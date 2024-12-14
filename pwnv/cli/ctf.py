@@ -1,5 +1,5 @@
 import typer
-from typing import Annotated, List
+from typing import Annotated
 from pwnv.models import CTF
 from pwnv.models.ctf import Status
 from pathlib import Path
@@ -25,7 +25,10 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 @config_exists()
-def add(name: str, path: Annotated[Path, typer.Option(help="Path to the CTF directory")] = Path.cwd()):
+def add(
+    name: str,
+    path: Annotated[Path, typer.Option(help="Path to the CTF directory")] = Path.cwd(),
+):
     ctfs = get_ctfs()
     if get_current_ctf(ctfs):
         print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")
@@ -65,17 +68,21 @@ def remove():
         return
     ##############################################
     chosen_ctf = select_ctf(ctfs, "Select a CTF to remove:")
-    if not confirm(f"Are you sure you want to remove CTF {chosen_ctf.name} and all its challenges?", default=False):
+    if not confirm(
+        f"Are you sure you want to remove CTF {chosen_ctf.name} and all its challenges?",
+        default=False,
+    ):
         return
-    #confirm = typer.confirm(
+    # confirm = typer.confirm(
     #    f"Are you sure you want to remove CTF {chosen_ctf.name}?", default=False
-    #)
-    #if not confirm:
+    # )
+    # if not confirm:
     #    return
     challenges = get_challenges()
-    challenges = list(filter(lambda challenge: challenge.ctf_id != chosen_ctf.id, challenges))
-    
-    
+    challenges = list(
+        filter(lambda challenge: challenge.ctf_id != chosen_ctf.id, challenges)
+    )
+
     ctfs.remove(chosen_ctf)
 
     shutil.rmtree(chosen_ctf.path)
@@ -99,7 +106,7 @@ def list_():
 
     while True:
         ctf = select_ctf(ctfs, "Select a CTF to view:")
-        show_ctf(ctf)  
+        show_ctf(ctf)
         input("Press Enter to continue...")
 
 
@@ -146,7 +153,7 @@ def start():
             break
     else:
         chosen_ctf = select_ctf(stopped_ctfs, "Select a CTF to start:")
-        #chosen_ctf = select_fuzzy(stopped_ctfs, "Select a CTF to start:")
+        # chosen_ctf = select_fuzzy(stopped_ctfs, "Select a CTF to start:")
 
     index = ctfs.index(chosen_ctf)
     chosen_ctf.running = Status.running
@@ -159,6 +166,7 @@ def start():
     print(
         f"[green]:tada: Success![/] Started CTF [medium_spring_green]{chosen_ctf.name}[/]."
     )
+
 
 def show_ctf(ctf: CTF):
     table = Table(title="CTF Details")

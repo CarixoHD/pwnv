@@ -154,6 +154,7 @@ def select_ctf(ctfs: List[CTF], msg: str) -> CTF:
     )
     return ctf
 
+
 def select_tags(msg: str) -> List[str]:
     tags = get_tags()
     return fuzzy_select(
