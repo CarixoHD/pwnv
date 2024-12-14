@@ -38,6 +38,8 @@ def reset():
     
     #config = read_config()
     if confirm("Do you wish to delete all the CTF and challenge files?"):
+        for challenge in get_challenges():
+            shutil.rmtree(challenge.path)
         for ctf in get_ctfs():
             shutil.rmtree(ctf.path)
         print("[green]:white_check_mark: All CTF and challenge files have been deleted.[/]")
