@@ -1,7 +1,7 @@
 [project]
 name = "pwnv-python"
 version = "0.1.0"
-description = "Add your description here"
+description = "CLI tool for CTF management"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

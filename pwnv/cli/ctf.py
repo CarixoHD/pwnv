@@ -1,12 +1,11 @@
 import typer
-from typing import Annotated
+from typing import Annotated, Optional
 from pwnv.models import CTF
 from pwnv.models.ctf import Status
 from pathlib import Path
 import shutil
 from rich import print
 from rich.table import Table
-
 from pwnv.cli.utils import (
     config_exists,
     get_ctfs,
@@ -27,17 +26,22 @@ app = typer.Typer(no_args_is_help=True)
 @config_exists()
 def add(
     name: str,
-    path: Annotated[Path, typer.Option(help="Path to the CTF directory")] = Path.cwd(),
+    path: Annotated[
+        Optional[Path],
+        typer.Option(
+            help="Path to the CTF directory",
+        ),
+    ] = Path.cwd(),
 ):
     ctfs = get_ctfs()
-    if get_current_ctf(ctfs):
+    if get_current_ctf(ctfs) and (path in Path.cwd().parents or path == Path.cwd()):
         print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")
         return
     # if any(ctf.path == Path.cwd() or ctf.path in Path.cwd().parents for ctf in ctfs):
     #    print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")
     #    return
 
-    path = path / name
+    path = (path / name).resolve()
     if is_duplicate(path=path, model_list=ctfs):
         print(f"[red]:x: Error:[/] CTF with name {name} or path {path} already exists.")
         return
@@ -60,13 +64,13 @@ def remove():
         print("[red]:x: Error:[/] No CTFs found.")
         return
 
-    ctf = get_current_ctf(ctfs)
+    # ctf = get_current_ctf(ctfs)
 
     #########################################
-    if ctf:
-        print("[red]:x: Error:[/] You cannot remove a CTF in a CTF directory.")
-        return
-    ##############################################
+    # if ctf:
+    #    print("[red]:x: Error:[/] You cannot remove a CTF in a CTF directory.")
+    #    return
+    #########################################
     chosen_ctf = select_ctf(ctfs, "Select a CTF to remove:")
     if not confirm(
         f"Are you sure you want to remove CTF {chosen_ctf.name} and all its challenges?",
@@ -97,8 +101,8 @@ def remove():
     )
 
 
-@app.command(name="list")
-def list_():
+@app.command()
+def info():
     ctfs = get_ctfs()
     if not ctfs:
         print("[red]:x: Error:[/] No CTFs found.")

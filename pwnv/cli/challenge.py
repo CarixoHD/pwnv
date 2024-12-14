@@ -40,7 +40,6 @@ def add(name: str):
 
     challenges = get_challenges()
     ctf = get_current_ctf(ctfs)
-
     # if any(ctf.path == Path.cwd() or ctf.path in Path.cwd().parents for ctf in ctfs):
     #    ctf = next(ctf for ctf in ctfs if ctf.path == Path.cwd())
     if not ctf:
@@ -140,19 +139,27 @@ def remove():
     )
 
 
-@app.command(name="list")
+@app.command()
 @config_exists()
-def list_(
+def info(
     all: Annotated[bool, typer.Option(help="List all challenges")] = False,
 ):
-    ctf = get_current_ctf(get_ctfs())
     challenges = get_challenges()
+
+    current_ctf = get_current_ctf(get_ctfs())
+
     if not challenges:
         print("[bold red]:x: Error:[/] No challenges found.")
         return
-    if ctf and not all:
+
+    current_challenge = get_current_challenge(challenges)
+    if current_challenge and not all:
+        show_challenge(current_challenge)
+        return
+
+    if current_ctf and not all:
         challenges = list(
-            filter(lambda challenge: challenge.ctf_id == ctf.id, challenges)
+            filter(lambda challenge: challenge.ctf_id == current_ctf.id, challenges)
         )
 
     while True:

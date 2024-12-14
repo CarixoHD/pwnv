@@ -1,4 +1,4 @@
-from pwnv.cli import challenge_app, ctf_app, init_app
+from pwnv.cli import challenge_app, ctf_app, init_app, list_app
 
 import typer
 
@@ -8,4 +8,5 @@ def main():
     app.add_typer(challenge_app, name="challenge")
     app.add_typer(ctf_app, name="ctf", invoke_without_command=True)
     app.add_typer(init_app)
+    # app.add_typer(list_app)
     app()

@@ -9,7 +9,6 @@ from typing import List
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 
-
 config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
 
 
@@ -105,6 +104,7 @@ def select(message: str, choices: List, *args, **kwargs):
     return inquirer.select(message=message, choices=choices, *args, **kwargs).execute()
 
 
+"""
 def select_fuzzy(choices: List[CTF | Challenge], message: str) -> CTF | Challenge:
     if isinstance(choices[0], CTF):
         options = map(
@@ -126,6 +126,7 @@ def select_fuzzy(choices: List[CTF | Challenge], message: str) -> CTF | Challeng
         choices=options,
         border=True,
     ).execute()
+"""
 
 
 def fuzzy_select(*, choices: List[CTF | Challenge], **kwargs) -> CTF | Challenge:
