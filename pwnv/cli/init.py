@@ -1,6 +1,6 @@
 import typer
 from rich import print
-from typing import Annotated
+from typing import Annotated, Optional
 from rich.progress import SpinnerColumn, Progress, TextColumn
 from pathlib import Path
 import shutil
@@ -15,8 +15,13 @@ testing = True
 
 @app.command()
 def init(
-    env_path: Annotated[Path, "Path to the environment directory"] = Path.cwd()
-    / "pwnvenv",
+    env_path: Annotated[
+        Optional[Path], typer.Option(help="Path to the environment directory")
+    ] = Path.cwd() / "pwnv/.pwnvenv",
+    default_ctf: Annotated[
+        Optional[bool],
+        typer.Option(help="Use environment directory as default CTF path"),
+    ] = True,
 ):
     app_config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
     # env_path = Path(env_path).resolve() if env_path != "." else Path.cwd() / "pwnvenv"
@@ -33,8 +38,8 @@ def init(
         default=True,
     )
 
-    testing = True
-    if app_config_path.exists() and not testing:
+    # testing = False
+    if app_config_path.exists():
         print("[bold red]:x: Error:[/] Config file already exists.")
         return
 
@@ -45,12 +50,12 @@ def init(
     ) as progress:
         progress.add_task(description="Initializing environment", start=False)
         _create_app_config(app_config_path)
-
         init_model = Init(
             env_path=env_path,
             challenge_tags=["buffer overflow", "fastbin dup"],
             ctfs=[],
             challenges=[],
+            default_ctf_path=default_ctf,
         )
         if not _setup_virtualenv(env_path):
             return

@@ -1,5 +1,5 @@
 [project]
-name = "pwnv-python"
+name = "pwnv"
 version = "0.1.0"
 description = "CLI tool for CTF management"
 readme = "README.md"
@@ -9,3 +9,6 @@ dependencies = [
     "pydantic>=2.10.3",
     "typer>=0.15.1",
 ]
+
+[project.scripts]
+pwnv = "pwnv:main"

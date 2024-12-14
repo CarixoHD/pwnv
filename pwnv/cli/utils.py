@@ -187,6 +187,16 @@ def get_ctf_choices(ctfs: List[CTF]) -> List[Choice]:
     return list(options)
 
 
+def get_env_path() -> Path:
+    config = read_config()
+    return Path(config["env_path"])
+
+
+def is_default_ctf_path() -> bool:
+    config = read_config()
+    return config["default_ctf_path"]
+
+
 def is_duplicate(
     *,
     name: str | None = None,

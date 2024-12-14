@@ -1,3 +1,9 @@
 import pwnv
 
-pwnv.main()
+
+def main():
+    pwnv.main()
+
+
+if __name__ == "__main__":
+    main()

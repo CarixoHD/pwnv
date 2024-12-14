@@ -16,6 +16,8 @@ from pwnv.cli.utils import (
     get_current_ctf,
     select_ctf,
     confirm,
+    get_env_path,
+    is_default_ctf_path,
 )
 
 
@@ -33,6 +35,8 @@ def add(
         ),
     ] = Path.cwd(),
 ):
+    if is_default_ctf_path():
+        path = get_env_path().parent
     ctfs = get_ctfs()
     if get_current_ctf(ctfs) and (path in Path.cwd().parents or path == Path.cwd()):
         print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")

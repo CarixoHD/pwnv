@@ -1,4 +1,4 @@
-from pwnv.cli import challenge_app, ctf_app, init_app, list_app
+from pwnv.cli import challenge_app, ctf_app, init_app
 
 import typer
 
