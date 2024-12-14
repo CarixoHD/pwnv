@@ -11,7 +11,6 @@ from pwnv.models import Init
 app = typer.Typer(no_args_is_help=True)
 
 
-
 @app.command()
 def init(
     env_path: Annotated[
@@ -26,7 +25,7 @@ def init(
     if uv is None:
         print("[red]:x: Error:[/] uv binary not found in PATH. Please install it.")
         return
-    
+
     app_config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
     # env_path = Path(env_path).resolve() if env_path != "." else Path.cwd() / "pwnvenv"
     env_path = Path(env_path).resolve()

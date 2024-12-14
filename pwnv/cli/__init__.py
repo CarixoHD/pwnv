@@ -1,7 +1,6 @@
 from pwnv.cli.challenge import app as challenge_app
 from pwnv.cli.ctf import app as ctf_app
 from pwnv.cli.init import app as init_app
-from pwnv.cli.list import app as list_app
 from pwnv.cli.reset import app as reset_app
 
 

@@ -281,8 +281,10 @@ def solve(
 def show_challenge(challenge: Challenge):
     # print challenge info as toml format
     # print name of challenge as light purple in format [name]
-    print(f"[blue]{escape("["+challenge.name+"]")}[/]")   
-    print(f"[red]ctf[/] = '{list(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))[0].name}'")
+    print(f"[blue]{escape("["+challenge.name+"]")}[/]")
+    print(
+        f"[red]ctf[/] = '{list(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))[0].name}'"
+    )
     print(f"[red]category[/] = '{challenge.category.name}'")
     print(f"[red]path[/] = '{str(challenge.path)}'")
     print(f"[red]solved[/] = '{str(challenge.solved.name)}'")
@@ -290,8 +292,7 @@ def show_challenge(challenge: Challenge):
     print(f"[red]flag[/] = '{str(challenge.flag)}'")
     print(f"[red]tags[/] = '{', '.join(challenge.tags) if challenge.tags else ''}'")
     return
-    
-    
+
     table = Table(title="Challenge info")
 
     table.add_column("Name", style="cyan")

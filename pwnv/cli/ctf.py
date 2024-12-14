@@ -20,7 +20,6 @@ from pwnv.cli.utils import (
     get_env_path,
     is_default_ctf_path,
 )
-from datetime import datetime
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -183,9 +182,11 @@ def show_ctf(ctf: CTF):
     print(f"[red]path[/] = '{str(ctf.path)}'")
     print(f"[red]running[/] = '{str(ctf.running.name)}'")
     print(f"[red]date[/] = '{str(ctf.created_at.date())}'")
-    print(f"[red]num_challenges[/] = {str(len(list(filter(lambda challenge: challenge.ctf_id == ctf.id, get_challenges()))))}")
+    print(
+        f"[red]num_challenges[/] = {str(len(list(filter(lambda challenge: challenge.ctf_id == ctf.id, get_challenges()))))}"
+    )
     return
-    
+
     table = Table(title="CTF Details")
     table.add_column("Name", style="cyan")
     table.add_column("Path", style="magenta")
