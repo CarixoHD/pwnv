@@ -63,6 +63,7 @@ def add(
 
 
 @app.command()
+@config_exists()
 def remove():
     ctfs = get_ctfs()
     if not ctfs:
@@ -107,6 +108,7 @@ def remove():
 
 
 @app.command()
+@config_exists()
 def info():
     ctfs = get_ctfs()
     if not ctfs:
@@ -120,6 +122,7 @@ def info():
 
 
 @app.command()
+@config_exists()
 def stop():
     current_path = Path.cwd()
     ctfs = get_ctfs()
@@ -148,6 +151,7 @@ def stop():
 
 
 @app.command()
+@config_exists()
 def start():
     current_path = Path.cwd()
     ctfs = get_ctfs()
