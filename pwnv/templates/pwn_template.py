@@ -17,9 +17,9 @@ context.terminal = ['tmux', 'splitw', '-h']
 if os.path.isfile("./libc.so.6"): libc = ELF('./libc.so.6', checksec=False)
 
 # utils
-u64 = lambda d: pwn.u64(d.ljust(8, b"\0")[:8])
-u32 = lambda d: pwn.u32(d.ljust(4, b"\0")[:4])
-u16 = lambda d: pwn.u16(d.ljust(2, b"\0")[:2])
+u64 = lambda d: struct.unpack("<Q", d.ljust(8, b"\0"))[0]
+u32 = lambda d: struct.unpack("<I", d.ljust(4, b"\0"))[0]
+u16 = lambda d: struct.unpack("<H", d.ljust(2, b"\0"))[0]
 
 # credits to spwn by @chino
 ru  = lambda *x, **y: p.recvuntil(*x, **y)

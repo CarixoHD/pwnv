@@ -27,7 +27,6 @@ def init(
         return
 
     app_config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
-    # env_path = Path(env_path).resolve() if env_path != "." else Path.cwd() / "pwnvenv"
     env_path = Path(env_path).resolve()
 
     if env_path.exists():
@@ -90,6 +89,7 @@ def _setup_virtualenv(env_path: Path) -> bool:
         "pycryptodome",
         "z3",
         "requests",
+        "libdebug",
     ]
     os.chdir(env_path)
     ret = subprocess.run(["uv", "pip", "install", *packages], capture_output=True)
