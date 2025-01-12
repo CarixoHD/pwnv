@@ -16,20 +16,23 @@ context.terminal = ['tmux', 'splitw', '-h']
 
 if os.path.isfile("./libc.so.6"): libc = ELF('./libc.so.6', checksec=False)
 
+
 # utils
 u64 = lambda d: struct.unpack("<Q", d.ljust(8, b"\0"))[0]
 u32 = lambda d: struct.unpack("<I", d.ljust(4, b"\0"))[0]
 u16 = lambda d: struct.unpack("<H", d.ljust(2, b"\0"))[0]
 
 # credits to spwn by @chino
-ru  = lambda *x, **y: p.recvuntil(*x, **y)
-rl  = lambda *x, **y: p.recvline(*x, **y)
-rc  = lambda *x, **y: p.recv(*x, **y)
-sla = lambda *x, **y: p.sendlineafter(*x, **y)
-sa  = lambda *x, **y: p.sendafter(*x, **y)
-sl  = lambda *x, **y: p.sendline(*x, **y)
-sn  = lambda *x, **y: p.send(*x, **y)
-
+ru         = lambda *x, **y: p.recvuntil(*x, **y, drop=True)
+rl         = lambda *x, **y: p.recvline(*x, **y)
+rc         = lambda *x, **y: p.recv(*x, **y)
+sla        = lambda *x, **y: p.sendlineafter(*x, **y)
+sa         = lambda *x, **y: p.sendafter(*x, **y)
+sl         = lambda *x, **y: p.sendline(*x, **y)
+sn         = lambda *x, **y: p.send(*x, **y)
+logbase    = lambda: log.info("libc base = %#x" % libc.address)
+logleak    = lambda name, val: log.info(name+" = %#x" % val)
+one_gadget = lambda: [int(i) + libc.address for i in subprocess.check_output(['one_gadget', '--raw', '-l1', libc.path]).decode().split(' ')]
 
 # exit_handler stuff
 fs_decrypt = lambda addr, key: ror(addr, 0x11) ^ key
