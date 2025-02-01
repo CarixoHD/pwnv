@@ -1,3 +1,3 @@
 # Pwnv
 
-Test
+A tool I made to manage CTFs and challenges.
