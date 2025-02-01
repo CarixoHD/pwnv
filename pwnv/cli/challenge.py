@@ -190,11 +190,10 @@ def filter_():
         chosen_tags = select_tags("Select tags to filter by:")
         filtered_challenges = list(
             filter(
-                lambda challenge: any(tag in challenge.tags for tag in chosen_tags),
+                lambda challenge: any((challenge.tags and tag in challenge.tags) for tag in chosen_tags),
                 solved_challenges,
             )
-        )
-
+        )        
         if not filtered_challenges:
             print("[bold red]:x: Error:[/] No challenges found.")
         challenge = select_challenge(filtered_challenges, "Select a challenge to view:")

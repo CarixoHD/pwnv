@@ -4,6 +4,7 @@ from pwn import *
 
 host = args.HOST or ''
 port = int(args.PORT or 1337)
+ssl = args.SSL or False
 
 binary = './binary'
 
@@ -54,7 +55,7 @@ def start(argv=[], *a, **kw):
     if args.GDB:
         return gdb.debug([elf.path] + argv, gdbscript=gdbscript, *a, **kw)
     elif args.REMOTE:
-        return remote(host, port)
+        return remote(host, port, ssl=ssl)
     else:
         return process([elf.path] + argv, *a, **kw)
 
