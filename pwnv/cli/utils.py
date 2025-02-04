@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 from rich import print
 from pwnv.models import CTF, Challenge
-from pwnv.models.challenge import Solved
+from pwnv.models.challenge import Solved, Category
 import json
 from typing import List
 from InquirerPy import inquirer
@@ -104,31 +104,6 @@ def select(message: str, choices: List, *args, **kwargs):
     return inquirer.select(message=message, choices=choices, *args, **kwargs).execute()
 
 
-"""
-def select_fuzzy(choices: List[CTF | Challenge], message: str) -> CTF | Challenge:
-    if isinstance(choices[0], CTF):
-        options = map(
-            lambda choice: Choice(
-                name=f"{choice.name:<50} ({choice.created_at.year})", value=choice
-            ),
-            sorted(choices, key=lambda ctf: ctf.created_at, reverse=True),
-        )
-    else:
-        ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
-        options = map(
-            lambda choice: Choice(
-                name=f"{choice.name:<50} ({ctf_names[choice.ctf_id]})", value=choice
-            ),
-            choices,
-        )
-    return inquirer.fuzzy(
-        message=message,
-        choices=options,
-        border=True,
-    ).execute()
-"""
-
-
 def fuzzy_select(*, choices: List[CTF | Challenge], **kwargs) -> CTF | Challenge:
     return inquirer.fuzzy(
         message=kwargs.pop("message", "Select an item:"),
@@ -156,6 +131,14 @@ def select_ctf(ctfs: List[CTF], msg: str) -> CTF:
     return ctf
 
 
+def select_category() -> Category:
+    category = fuzzy_select(
+        choices=[category.name for category in Category],
+        message="Select the challenge category:",
+    )
+    return Category[category]
+
+
 def select_tags(msg: str) -> List[str]:
     tags = get_tags()
     return fuzzy_select(
@@ -169,7 +152,7 @@ def get_challenge_choices(challenges: List[Challenge]) -> List[Choice]:
     ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
     options = map(
         lambda choice: Choice(
-            name=f"{choice.name:<50} [{ctf_names[choice.ctf_id]}][{"solved" if choice.solved == Solved.solved else "unsolved"}]",
+            name=f"{choice.name:<50} [{ctf_names[choice.ctf_id]}][{'solved' if choice.solved == Solved.solved else 'unsolved'}]",
             value=choice,
         ),
         challenges,

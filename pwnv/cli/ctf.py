@@ -5,7 +5,6 @@ from pwnv.models.ctf import Status
 from pathlib import Path
 import shutil
 from rich import print
-from rich.table import Table
 from rich.markup import escape
 from pwnv.cli.utils import (
     config_exists,
@@ -42,9 +41,6 @@ def add(
     if get_current_ctf(ctfs) and (path in Path.cwd().parents or path == Path.cwd()):
         print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")
         return
-    # if any(ctf.path == Path.cwd() or ctf.path in Path.cwd().parents for ctf in ctfs):
-    #    print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")
-    #    return
 
     path = (path / name).resolve()
     if is_duplicate(path=path, model_list=ctfs):
@@ -70,24 +66,13 @@ def remove():
         print("[red]:x: Error:[/] No CTFs found.")
         return
 
-    # ctf = get_current_ctf(ctfs)
-
-    #########################################
-    # if ctf:
-    #    print("[red]:x: Error:[/] You cannot remove a CTF in a CTF directory.")
-    #    return
-    #########################################
     chosen_ctf = select_ctf(ctfs, "Select a CTF to remove:")
     if not confirm(
         f"Are you sure you want to remove CTF {chosen_ctf.name} and all its challenges?",
         default=False,
     ):
         return
-    # confirm = typer.confirm(
-    #    f"Are you sure you want to remove CTF {chosen_ctf.name}?", default=False
-    # )
-    # if not confirm:
-    #    return
+
     challenges = get_challenges()
     challenges = list(
         filter(lambda challenge: challenge.ctf_id != chosen_ctf.id, challenges)
@@ -166,7 +151,6 @@ def start():
             break
     else:
         chosen_ctf = select_ctf(stopped_ctfs, "Select a CTF to start:")
-        # chosen_ctf = select_fuzzy(stopped_ctfs, "Select a CTF to start:")
 
     index = ctfs.index(chosen_ctf)
     chosen_ctf.running = Status.running
@@ -182,36 +166,10 @@ def start():
 
 
 def show_ctf(ctf: CTF):
-    print(f"[blue]{escape("["+ctf.name+"]")}[/]")
+    print(f"[blue]{escape('[' + ctf.name + ']')}[/]")
     print(f"[red]path[/] = '{str(ctf.path)}'")
     print(f"[red]running[/] = '{str(ctf.running.name)}'")
     print(f"[red]date[/] = '{str(ctf.created_at.date())}'")
     print(
         f"[red]num_challenges[/] = {str(len(list(filter(lambda challenge: challenge.ctf_id == ctf.id, get_challenges()))))}"
     )
-    return
-
-    table = Table(title="CTF Details")
-    table.add_column("Name", style="cyan")
-    table.add_column("Path", style="magenta")
-    table.add_column("Running", style="green")
-    table.add_column("Year", style="yellow")
-    table.add_column("Number of Challenges", style="blue")
-
-    table.add_row(
-        ctf.name,
-        str(ctf.path),
-        str("Running" if ctf.running else "Stopped"),
-        str(ctf.created_at.year),
-        str(
-            len(
-                list(
-                    filter(
-                        lambda challenge: challenge.ctf_id == ctf.id, get_challenges()
-                    )
-                )
-            )
-        ),
-    )
-
-    print(table)

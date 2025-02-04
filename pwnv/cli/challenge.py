@@ -1,6 +1,6 @@
 import typer
 from pwnv.models import Challenge
-from pwnv.models.challenge import Category, Solved
+from pwnv.models.challenge import Solved
 from pwnv.setup import Core
 from pwnv.cli.utils import (
     config_exists,
@@ -13,7 +13,7 @@ from pwnv.cli.utils import (
     set_tags,
     select_challenge,
     select_ctf,
-    select,
+    select_category,
     confirm,
     select_tags,
     get_current_ctf,
@@ -23,7 +23,6 @@ from pathlib import Path
 from InquirerPy import inquirer
 from typing import Annotated
 
-from rich.table import Table
 from rich import print
 from rich.markup import escape
 import shutil
@@ -41,8 +40,7 @@ def add(name: str):
 
     challenges = get_challenges()
     ctf = get_current_ctf(ctfs)
-    # if any(ctf.path == Path.cwd() or ctf.path in Path.cwd().parents for ctf in ctfs):
-    #    ctf = next(ctf for ctf in ctfs if ctf.path == Path.cwd())
+
     if not ctf:
         running_ctfs = list(filter(lambda ctf: ctf.running, ctfs))
         if not running_ctfs:
@@ -58,19 +56,9 @@ def add(name: str):
         print(f"[red]:x: Error:[/] Challenge with name {name} already exists.")
         return
 
-    category = select(
-        "Select the challenge category:",
-        [category.name for category in Category],
-    )
+    category = select_category()
 
-    # category = inquirer.select(
-    #    "Select the challenge category:",
-    #    choices=[category.name for category in Category],
-    # ).execute()
-
-    challenge = Challenge(
-        ctf_id=ctf.id, name=name, path=path, category=Category[category]
-    )
+    challenge = Challenge(ctf_id=ctf.id, name=name, path=path, category=category)
     challenges.append(challenge)
 
     config = read_config()
@@ -94,8 +82,7 @@ def remove():
         return
 
     ctf = get_current_ctf(ctfs)
-    # if any(ctf.path == Path.cwd() or ctf.path in Path.cwd().parents for ctf in ctfs):
-    #    ctf = next(ctf for ctf in ctfs if ctf.path == Path.cwd())
+
     if not ctf:
         ctfs_with_challenges = list(
             filter(
@@ -122,10 +109,6 @@ def remove():
             "Challenge directory is not empty. Are you sure you want to remove it?",
             False,
         ):
-            # if not inquirer.confirm(
-            #    "Challenge directory is not empty. Are you sure you want to remove it?",
-            #    default=False,
-            # ).execute():
             return
 
     challenges.remove(challenge)
@@ -146,7 +129,6 @@ def info(
     all: Annotated[bool, typer.Option(help="List all challenges")] = False,
 ):
     challenges = get_challenges()
-
     current_ctf = get_current_ctf(get_ctfs())
 
     if not challenges:
@@ -180,20 +162,16 @@ def filter_():
         print("[bold red]:x: Error:[/] No solved challenges found.")
         return
 
-    # chosen_tags = select_tags("Select tags to filter by:")
-    # filtered_challenges = list(filter(lambda challenge: any(tag in challenge.tags for tag in chosen_tags), solved_challenges))
-
-    # if not filtered_challenges:
-    #    print("[bold red]:x: Error:[/] No challenges found.")
-    #    return
     while True:
         chosen_tags = select_tags("Select tags to filter by:")
         filtered_challenges = list(
             filter(
-                lambda challenge: any((challenge.tags and tag in challenge.tags) for tag in chosen_tags),
+                lambda challenge: any(
+                    (challenge.tags and tag in challenge.tags) for tag in chosen_tags
+                ),
                 solved_challenges,
             )
-        )        
+        )
         if not filtered_challenges:
             print("[bold red]:x: Error:[/] No challenges found.")
         challenge = select_challenge(filtered_challenges, "Select a challenge to view:")
@@ -234,15 +212,7 @@ def solve(
     index = challenges.index(challenge)
     challenge.solved = Solved.solved
     tags = get_tags()
-    """
-    chosen_tags = inquirer.fuzzy(
-        message="Select tags for the challenge (tab to toggle):",
-        choices=set(tags),
-        multiselect=True,
-        border=True,
-        mandatory=False,
-    ).execute()
-    """
+
     if not no_tags:
         while not (
             raw_tags := inquirer.text(
@@ -270,17 +240,8 @@ def solve(
     write_config(config)
 
 
-# def select_challenge(challenges: List[Challenge], msg: str) -> Challenge:
-#    challenge = fuzzy_select(
-#        choices=get_challenge_choices(challenges), message=msg, transformer=lambda result: result.split(" ")[0]
-#    )
-#    return challenge
-
-
 def show_challenge(challenge: Challenge):
-    # print challenge info as toml format
-    # print name of challenge as light purple in format [name]
-    print(f"[blue]{escape("["+challenge.name+"]")}[/]")
+    print(f"[blue]{escape('[' + challenge.name + ']')}[/]")
     print(
         f"[red]ctf[/] = '{list(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))[0].name}'"
     )
@@ -290,28 +251,3 @@ def show_challenge(challenge: Challenge):
     print(f"[red]points[/] = '{str(challenge.points)}'")
     print(f"[red]flag[/] = '{str(challenge.flag)}'")
     print(f"[red]tags[/] = '{', '.join(challenge.tags) if challenge.tags else ''}'")
-    return
-
-    table = Table(title="Challenge info")
-
-    table.add_column("Name", style="cyan")
-    table.add_column("CTF", style="magenta")
-    table.add_column("Category", style="magenta")
-    table.add_column("Path", style="green")
-    table.add_column("Solved", style="yellow")
-    table.add_column("Points", style="blue")
-    table.add_column("Flag", style="blue")
-    table.add_column("Tags", style="blue")
-
-    table.add_row(
-        challenge.name,
-        list(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))[0].name,
-        challenge.category.name,
-        str(challenge.path),
-        str(challenge.solved.name),
-        str(challenge.points),
-        str(challenge.flag),
-        ", ".join(challenge.tags) if challenge.tags else "None",
-    )
-
-    print(table)

@@ -10,6 +10,7 @@ from pwnv.cli.utils import (
     get_challenges,
 )
 
+# CURRENTLY NOT IN USE
 
 app = typer.Typer(no_args_is_help=True)
 

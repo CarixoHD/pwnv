@@ -16,6 +16,7 @@ class Category(IntEnum):
     hardware = 9
     mobile = 10
     game = 11
+    blockchain = 12
 
 
 class Solved(IntEnum):
