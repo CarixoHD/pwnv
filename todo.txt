@@ -1,0 +1,2 @@
+FIX INIT (ctf path and env path)
+FIX AUTODOWNLOAD (CTFBRIDGE)

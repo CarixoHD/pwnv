@@ -4,12 +4,17 @@ import typer
 from rich import print
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Solved, Category
+from pwnv.setup import Core
 import json
 from typing import List
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 
-config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
+debug = False
+if debug:
+    config_path = Path.cwd() / "config.json"
+else:
+    config_path = Path(typer.get_app_dir("pwnv")) / "config.json"
 
 
 def config_exists() -> bool:
@@ -152,7 +157,7 @@ def get_challenge_choices(challenges: List[Challenge]) -> List[Choice]:
     ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
     options = map(
         lambda choice: Choice(
-            name=f"{choice.name:<50} [{ctf_names[choice.ctf_id]}][{'solved' if choice.solved == Solved.solved else 'unsolved'}]",
+            name=f"{choice.name:<50} [{ctf_names[choice.ctf_id]}][{'solved' if choice.solved == Solved.solved else 'unsolved'}][{choice.category.name}]",
             value=choice,
         ),
         challenges,
@@ -170,14 +175,9 @@ def get_ctf_choices(ctfs: List[CTF]) -> List[Choice]:
     return list(options)
 
 
-def get_env_path() -> Path:
+def get_ctfs_path() -> Path:
     config = read_config()
-    return Path(config["env_path"])
-
-
-def is_default_ctf_path() -> bool:
-    config = read_config()
-    return config["default_ctf_path"]
+    return Path(config["ctfs_path"])
 
 
 def is_duplicate(
@@ -191,3 +191,13 @@ def is_duplicate(
     elif name is None:
         return any(model.path == path for model in model_list)
     return any(model.name == name or model.path == path for model in model_list)
+
+
+def add_challenge(challenge: Challenge):
+    challenges = get_challenges()
+    challenges.append(challenge)
+    config = read_config()
+    config["challenges"] = [challenge.model_dump() for challenge in challenges]
+    write_config(config)
+    Path.mkdir(challenge.path, parents=True, exist_ok=True)
+    Core(challenge)

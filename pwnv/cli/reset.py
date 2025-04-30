@@ -7,9 +7,8 @@ from pwnv.cli.utils import (
     get_ctfs,
     get_challenges,
     confirm,
-    get_env_path,
+    get_ctfs_path,
 )
-
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -20,7 +19,7 @@ def reset():
     if not confirm("Are you sure you want to reset the environment?"):
         return
 
-    env_path = get_env_path()
+    env_path = get_ctfs_path()
     shutil.rmtree(env_path)
     print(f"[green]:white_check_mark: Environment at {env_path} has been deleted.[/]")
 

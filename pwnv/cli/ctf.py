@@ -1,8 +1,7 @@
 import typer
-from typing import Annotated, Optional
-from pwnv.models import CTF
+from pwnv.models import CTF, Challenge
 from pwnv.models.ctf import Status
-from pathlib import Path
+from pwnv.models.challenge import Solved, Category
 import shutil
 from rich import print
 from rich.markup import escape
@@ -16,9 +15,16 @@ from pwnv.cli.utils import (
     get_current_ctf,
     select_ctf,
     confirm,
-    get_env_path,
-    is_default_ctf_path,
+    get_ctfs_path,
+    add_challenge,
 )
+from InquirerPy import inquirer
+
+
+from ctfbridge.utils.platform_detection import detect_platform
+from ctfbridge import get_client
+from ctfbridge.clients.ctfd_client import CTFdClient
+from ctfbridge.clients.rctf_client import RCTFClient
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -28,26 +34,16 @@ app = typer.Typer(no_args_is_help=True)
 @config_exists()
 def add(
     name: str,
-    path: Annotated[
-        Optional[Path],
-        typer.Option(
-            help="Path to the CTF directory",
-        ),
-    ] = Path.cwd(),
 ):
-    if is_default_ctf_path():
-        path = get_env_path().parent
     ctfs = get_ctfs()
-    if get_current_ctf(ctfs) and (path in Path.cwd().parents or path == Path.cwd()):
-        print("[red]:x: Error:[/] You cannot create a CTF in a CTF directory.")
-        return
 
-    path = (path / name).resolve()
+    path = (get_ctfs_path() / name).resolve()
     if is_duplicate(path=path, model_list=ctfs):
         print(f"[red]:x: Error:[/] CTF with name {name} or path {path} already exists.")
         return
 
     ctf = CTF(name=name, path=path)
+
     ctfs.append(ctf)
     config = read_config()
     config["ctfs"] = [ctf.model_dump() for ctf in ctfs]
@@ -56,6 +52,84 @@ def add(
     print(
         f"[green]:tada: Success![/] Added CTF [medium_spring_green]{name}[/] at [medium_spring_green]{path}[/]."
     )
+
+    fetch_challenges = confirm(
+        f"Do you want to fetch challenges from {ctf.name}?",
+        default=True,
+    )
+    if not fetch_challenges:
+        return
+    url = inquirer.text(
+        message="Enter the URL of the CTF (e.g. https://ctf.example.com)",
+    ).execute()
+    if not url:
+        print("[red]:x: Error:[/] URL cannot be NONE.")
+        return
+
+    client = get_client(url)
+    if not client:
+        print("[red]:x: Error:[/] Failed to get CTF client.")
+        return
+
+    platform = detect_platform(url)
+    if platform == "CTFd":
+        client = CTFdClient(url)
+        username = inquirer.text(
+            message="Enter your CTFd username",
+        ).execute()
+        password = inquirer.text(
+            message="Enter your CTFd password",
+        ).execute()
+
+        try:
+            client.login(username, password)
+        except Exception as e:
+            print(f"[red]:x: Error:[/] Failed to login to CTFd: {e}")
+            return
+    elif platform == "rCTF":
+        client = RCTFClient(url)
+        token = inquirer.text(
+            message="Enter your team token",
+        ).execute()
+        try:
+            client.login("a", "A", token)
+        except Exception as e:
+            print(f"[red]:x: Error:[/] Failed to login to rCTF: {e}")
+            return
+    else:
+        print(f"[red]:x: Error:[/] Unsupported platform: {platform}")
+        return
+    challenges = client.get_challenges()
+    if not challenges:
+        print("[red]:x: Error:[/] No challenges found.")
+        return
+
+    for challenge in challenges:
+        try:
+            category = Category[challenge.category.lower()]
+        except KeyError:
+            category = Category.other
+
+        challenge.name = challenge.name.replace(" ", "-").lower()
+        extras = {
+            "description": challenge.description,
+            "attachments": challenge.attachments,
+        }
+
+        new_challenge = Challenge(
+            ctf_id=ctf.id,
+            name=challenge.name,
+            path=path / challenge.name,
+            category=category,
+            points=challenge.value,
+            solved=Solved.solved if challenge.solved else Solved.unsolved,
+            extras=extras,
+        )
+
+        add_challenge(new_challenge)
+        print(
+            f"[green]:tada: Success![/] Added challenge [medium_spring_green]{challenge.name}[/] to CTF [medium_spring_green]{ctf.name}[/]."
+        )
 
 
 @app.command()
@@ -109,17 +183,15 @@ def info():
 @app.command()
 @config_exists()
 def stop():
-    current_path = Path.cwd()
     ctfs = get_ctfs()
     running_ctfs = list(filter(lambda ctf: ctf.running, ctfs))
     if not running_ctfs:
         print("[red]:x: Error:[/] No CTFs found.")
         return
 
-    for ctf in running_ctfs:
-        if current_path == ctf.path or current_path in ctf.path.parents:
-            chosen_ctf = ctf
-            break
+    ctf = get_current_ctf(running_ctfs)
+    if ctf and ctf.running:
+        chosen_ctf = ctf
     else:
         chosen_ctf = select_ctf(running_ctfs, "Select a CTF to stop:")
 
@@ -138,17 +210,15 @@ def stop():
 @app.command()
 @config_exists()
 def start():
-    current_path = Path.cwd()
     ctfs = get_ctfs()
     stopped_ctfs = list(filter(lambda ctf: not ctf.running, ctfs))
     if not stopped_ctfs:
         print("[red]:x: Error:[/] No stopped CTFs found.")
         return
 
-    for ctf in stopped_ctfs:
-        if current_path == ctf.path or current_path in ctf.path.parents:
-            chosen_ctf = ctf
-            break
+    ctf = get_current_ctf(stopped_ctfs)
+    if ctf:
+        chosen_ctf = ctf
     else:
         chosen_ctf = select_ctf(stopped_ctfs, "Select a CTF to start:")
 

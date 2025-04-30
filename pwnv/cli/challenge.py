@@ -1,7 +1,6 @@
 import typer
 from pwnv.models import Challenge
 from pwnv.models.challenge import Solved
-from pwnv.setup import Core
 from pwnv.cli.utils import (
     config_exists,
     read_config,
@@ -18,8 +17,8 @@ from pwnv.cli.utils import (
     select_tags,
     get_current_ctf,
     get_current_challenge,
+    add_challenge,
 )
-from pathlib import Path
 from InquirerPy import inquirer
 from typing import Annotated
 
@@ -57,15 +56,9 @@ def add(name: str):
         return
 
     category = select_category()
-
     challenge = Challenge(ctf_id=ctf.id, name=name, path=path, category=category)
-    challenges.append(challenge)
 
-    config = read_config()
-    config["challenges"] = [challenge.model_dump() for challenge in challenges]
-    write_config(config)
-    Path.mkdir(path, parents=True, exist_ok=True)
-    Core(challenge)
+    add_challenge(challenge)
 
     print(
         f"[green]:tada: Success![/] Added challenge [medium_spring_green]{name}[/] to CTF [medium_spring_green]{ctf.name}[/]."

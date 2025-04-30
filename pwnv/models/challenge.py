@@ -17,6 +17,7 @@ class Category(IntEnum):
     mobile = 10
     game = 11
     blockchain = 12
+    other = 13
 
 
 class Solved(IntEnum):
@@ -34,3 +35,4 @@ class Challenge(BaseModel):
     ctf_id: uuid.UUID
     path: Path
     tags: list[str] | None = None
+    extras: dict | None = None
