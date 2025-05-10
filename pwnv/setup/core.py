@@ -12,9 +12,7 @@ PLUGIN_REGISTRY: dict[Category, ChallengePlugin] = {
 
 class Core(object):
     def __init__(self, challenge: Challenge):
-        print(PLUGIN_REGISTRY)
         plugin = PLUGIN_REGISTRY.get(challenge.category)
-        if not plugin:
-            raise ValueError(f"Plugin for category {challenge.category} not found.")
-        plugin.create_template(challenge)
-        plugin.logic(challenge)
+        if plugin:
+            plugin.create_template(challenge)
+            plugin.logic(challenge)
