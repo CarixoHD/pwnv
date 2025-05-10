@@ -1,11 +1,11 @@
 [project]
 name = "pwnv"
-version = "0.1.1"
+version = "0.2.0"
 description = "CLI tool for CTF management"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ctfbridge>=0.1.1",
+    "ctfbridge>=0.1.4",
     "inquirerpy>=0.3.4",
     "pydantic>=2.10.3",
     "typer>=0.15.1",
@@ -16,4 +16,4 @@ dependencies = [
 pwnv = "pwnv:main"
 
 [tool.uv.workspace]
-members = ["CTF_test", "CTF"]
+members = ["CTF"]

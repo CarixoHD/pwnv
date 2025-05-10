@@ -26,7 +26,7 @@ class Solved(IntEnum):
 
 
 class Challenge(BaseModel):
-    id: uuid.UUID = uuid.uuid4()
+    id: uuid.UUID | int = uuid.uuid4()
     name: str
     flag: str | None = None
     points: int | None = None

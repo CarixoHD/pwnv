@@ -1,20 +1,20 @@
 from pwnv.models import Challenge
-from pwnv.templates import pwn_template
+from pwnv.models.challenge import Category
+from pwnv.plugins.plugin import ChallengePlugin
+from pwnv.plugins import PwnPlugin
+
+
+PLUGIN_REGISTRY: dict[Category, ChallengePlugin] = {
+    Category.pwn: PwnPlugin(),
+    # add other plugins here
+}
 
 
 class Core(object):
     def __init__(self, challenge: Challenge):
-        self.challenge = challenge
-
-        if challenge.category.name == "pwn":
-            self.pwn()
-        elif challenge.category.name == "web":
-            self.web()
-
-    def pwn(self):
-        path = self.challenge.path
-        with open(path / "solve.py", "w") as f:
-            f.write(pwn_template)
-
-    def web(self):
-        return "web"
+        print(PLUGIN_REGISTRY)
+        plugin = PLUGIN_REGISTRY.get(challenge.category)
+        if not plugin:
+            raise ValueError(f"Plugin for category {challenge.category} not found.")
+        plugin.create_template(challenge)
+        plugin.logic(challenge)

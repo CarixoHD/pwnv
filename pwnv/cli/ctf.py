@@ -1,7 +1,6 @@
 import typer
-from pwnv.models import CTF, Challenge
+from pwnv.models import CTF
 from pwnv.models.ctf import Status
-from pwnv.models.challenge import Solved, Category
 import shutil
 from rich import print
 from rich.markup import escape
@@ -16,119 +15,93 @@ from pwnv.cli.utils import (
     select_ctf,
     confirm,
     get_ctfs_path,
-    add_challenge,
+    add_ctf,
+    fetch_and_add_remote,
 )
 from InquirerPy import inquirer
+from typing import Annotated
 
-
-from ctfbridge.utils.platform_detection import detect_platform
 from ctfbridge import get_client
-from ctfbridge.clients.ctfd_client import CTFdClient
-from ctfbridge.clients.rctf_client import RCTFClient
-
+from ctfbridge.clients import RCTFClient
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
 @config_exists()
-def add(
-    name: str,
-):
+def add(name: str):
     ctfs = get_ctfs()
-
     path = (get_ctfs_path() / name).resolve()
     if is_duplicate(path=path, model_list=ctfs):
-        print(f"[red]:x: Error:[/] CTF with name {name} or path {path} already exists.")
+        print(f"[red]:x: Error:[/] CTF '{name}' or path '{path}' already exists.")
         return
-
-    ctf = CTF(name=name, path=path)
-
-    ctfs.append(ctf)
-    config = read_config()
-    config["ctfs"] = [ctf.model_dump() for ctf in ctfs]
-    write_config(config)
-    path.mkdir(parents=True, exist_ok=True)
-    print(
-        f"[green]:tada: Success![/] Added CTF [medium_spring_green]{name}[/] at [medium_spring_green]{path}[/]."
-    )
 
     fetch_challenges = confirm(
-        f"Do you want to fetch challenges from {ctf.name}?",
-        default=True,
+        f"Do you want to fetch challenges from '{name}'?", default=True
     )
-    if not fetch_challenges:
-        return
-    url = inquirer.text(
-        message="Enter the URL of the CTF (e.g. https://ctf.example.com)",
-    ).execute()
-    if not url:
-        print("[red]:x: Error:[/] URL cannot be NONE.")
-        return
-
-    client = get_client(url)
-    if not client:
-        print("[red]:x: Error:[/] Failed to get CTF client.")
-        return
-
-    platform = detect_platform(url)
-    if platform == "CTFd":
-        client = CTFdClient(url)
-        username = inquirer.text(
-            message="Enter your CTFd username",
-        ).execute()
-        password = inquirer.text(
-            message="Enter your CTFd password",
-        ).execute()
-
-        try:
-            client.login(username, password)
-        except Exception as e:
-            print(f"[red]:x: Error:[/] Failed to login to CTFd: {e}")
-            return
-    elif platform == "rCTF":
-        client = RCTFClient(url)
-        token = inquirer.text(
-            message="Enter your team token",
-        ).execute()
-        try:
-            client.login("a", "A", token)
-        except Exception as e:
-            print(f"[red]:x: Error:[/] Failed to login to rCTF: {e}")
-            return
-    else:
-        print(f"[red]:x: Error:[/] Unsupported platform: {platform}")
-        return
-    challenges = client.get_challenges()
-    if not challenges:
-        print("[red]:x: Error:[/] No challenges found.")
-        return
-
-    for challenge in challenges:
-        try:
-            category = Category[challenge.category.lower()]
-        except KeyError:
-            category = Category.other
-
-        challenge.name = challenge.name.replace(" ", "-").lower()
-        extras = {
-            "description": challenge.description,
-            "attachments": challenge.attachments,
-        }
-
-        new_challenge = Challenge(
-            ctf_id=ctf.id,
-            name=challenge.name,
-            path=path / challenge.name,
-            category=category,
-            points=challenge.value,
-            solved=Solved.solved if challenge.solved else Solved.unsolved,
-            extras=extras,
+    if fetch_challenges:
+        url = (
+            inquirer.text(
+                message="Enter the URL of the CTF (e.g. https://ctf.example.com)"
+            )
+            .execute()
+            .strip()
         )
+        if not url:
+            print("[red]:x: Error:[/] URL cannot be empty.")
+            return
 
-        add_challenge(new_challenge)
+    creds = dict()
+    client = None
+    if fetch_challenges:
+        try:
+            client = get_client(url)
+            if not client:
+                raise RuntimeError("client initialization returned None")
+        except Exception:
+            print("[red]:x: Error:[/] Failed to get CTF client")
+            return
+
+        if isinstance(client, RCTFClient):
+            creds["token"] = inquirer.text(message="Enter team token").execute().strip()
+        else:
+            creds["username"] = (
+                inquirer.text(message="Enter your username").execute().strip()
+            )
+            creds["password"] = (
+                inquirer.text(message="Enter your password", password=True)
+                .execute()
+                .strip()
+            )
+        if fetch_and_add_remote(
+            ctf_name=name,
+            url=url,
+            username=creds.get("username"),
+            password=creds.get("password"),
+            token=creds.get("token"),
+        ):
+            print(
+                f"[green]:tada: Success![/] Fetched CTF [medium_spring_green]{name}[/] from [medium_spring_green]{url}[/]."
+            )
+            return
+        else:
+            print(
+                f"[red]:x: Error:[/] Failed to fetch CTF [medium_spring_green]{name}[/] from [medium_spring_green]{url}[/]."
+            )
+            return
+
+    else:
+        ctf = CTF(
+            name=name,
+            path=path,
+            url="",
+            username="",
+            password="",
+            token="",
+        )
+        add_ctf(ctf)
         print(
-            f"[green]:tada: Success![/] Added challenge [medium_spring_green]{challenge.name}[/] to CTF [medium_spring_green]{ctf.name}[/]."
+            f"[green]:tada: Success![/] Added CTF [medium_spring_green]{name}[/] at [medium_spring_green]{ctf.path}[/]."
         )
 
 
@@ -233,6 +206,42 @@ def start():
     print(
         f"[green]:tada: Success![/] Started CTF [medium_spring_green]{chosen_ctf.name}[/]."
     )
+
+
+@app.command()
+@config_exists()
+def fetch(
+    name: str,
+    url: str,
+    username: Annotated[str, typer.Option(help="Username for the CTF")] = None,
+    password: Annotated[str, typer.Option(help="Password for the CTF")] = None,
+    token: Annotated[str, typer.Option(help="Token for the CTF")] = None,
+):
+    if is_duplicate(name=name, model_list=get_ctfs()):
+        print(f"[red]:x: Error:[/] CTF '{name}' already exists.")
+        return
+
+    if (not username and not password) and not token:
+        print(
+            "[red]:x: Error:[/] Please provide either username and password or token."
+        )
+        return
+
+    if fetch_and_add_remote(
+        ctf_name=name,
+        url=url,
+        username=username,
+        password=password,
+        token=token,
+    ):
+        print(
+            f"[green]:tada: Success![/] Fetched CTF [medium_spring_green]{name}[/] from [medium_spring_green]{url}[/]."
+        )
+    else:
+        print(
+            f"[red]:x: Error:[/] Failed to fetch CTF [medium_spring_green]{name}[/] from [medium_spring_green]{url}[/]."
+        )
+        return
 
 
 def show_ctf(ctf: CTF):

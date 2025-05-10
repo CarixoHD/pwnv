@@ -26,6 +26,8 @@ from rich import print
 from rich.markup import escape
 import shutil
 
+from ctfbridge import get_client
+
 app = typer.Typer(no_args_is_help=True)
 
 
@@ -230,6 +232,34 @@ def solve(
 
     config = read_config()
     config["challenges"][index] = challenge.model_dump()
+
+    # check if the ctf connected to the challenge is running
+    ctf = next(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))
+    if ctf.url:
+        client = get_client(ctf.url)
+        client.login(
+            ctf.username,
+            ctf.password,
+            ctf.token,
+        )
+        try:
+            result = client.challenges.submit(
+                challenge_id=challenge.id,
+                flag=challenge.flag,
+            )
+            if result.correct:
+                print(
+                    f"[green]:tada: Success![/] Flag [medium_spring_green]{challenge.flag}[/] submitted to CTF [medium_spring_green]{ctf.name}[/]."
+                )
+            else:
+                print(
+                    f"[red]:x: Error:[/] Flag [medium_spring_green]{challenge.flag}[/] is incorrect. Please check the flag and try again."
+                )
+        except Exception:
+            print(
+                f"[red]:x: Error:[/] Failed to submit flag [medium_spring_green]{challenge.flag}[/] to CTF [medium_spring_green]{ctf.name}[/]."
+            )
+
     write_config(config)
 
 

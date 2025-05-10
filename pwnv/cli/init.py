@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import os
 from pwnv.models import Init
-from pwnv.cli.utils import config_path
+from pwnv.cli.utils import get_config
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -17,13 +17,14 @@ app = typer.Typer(no_args_is_help=True)
 def init(
     ctfs_folder: Annotated[
         Optional[Path], typer.Option(help="Path to the new directory to store CTFs")
-    ] = Path.cwd() / "CTF",
+    ] = Path.cwd()
+    / "CTF",
 ):
     uv = shutil.which("uv")
     if uv is None:
         print("[red]:x: Error:[/] uv binary not found in PATH. Please install it.")
         return
-
+    config_path = get_config()
     if config_path.exists():
         print("[bold red]:x: Error:[/] Config file already exists.")
         return
@@ -43,9 +44,9 @@ def init(
         default=True,
     )
 
-    if config_path.exists():
-        print("[bold red]:x: Error:[/] Config file already exists.")
-        return
+    # if config_path.exists():
+    #     print("[bold red]:x: Error:[/] Config file already exists.")
+    #     return
 
     with Progress(
         SpinnerColumn(),

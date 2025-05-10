@@ -25,7 +25,7 @@ u16 = lambda d: struct.unpack("<H", d.ljust(2, b"\0"))[0]
 
 # credits to spwn by @chino
 ru         = lambda *x, **y: p.recvuntil(*x, **y, drop=True)
-rl         = lambda *x, **y: p.recvline(*x, **y)
+rl         = lambda *x, **y: p.recvline(*x, **y, keepends=False)
 rc         = lambda *x, **y: p.recv(*x, **y)
 sla        = lambda *x, **y: p.sendlineafter(*x, **y)
 sa         = lambda *x, **y: p.sendafter(*x, **y)

@@ -16,3 +16,7 @@ class CTF(BaseModel):
     created_at: datetime = datetime.now()
     path: Path
     running: Status = Status.running
+    url: str | None = None
+    username: str | None = None
+    password: str | None = None
+    token: str | None = None

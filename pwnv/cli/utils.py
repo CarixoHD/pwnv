@@ -10,6 +10,8 @@ from typing import List
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 
+from ctfbridge import get_client
+
 debug = False
 if debug:
     config_path = Path.cwd() / "config.json"
@@ -76,6 +78,10 @@ def set_tags(tags: list[str]):
     config = read_config()
     config["challenge_tags"] = tags
     write_config(config)
+
+
+def get_config() -> Path:
+    return config_path
 
 
 def get_current_ctf(ctfs: List[CTF]) -> CTF:
@@ -201,3 +207,126 @@ def add_challenge(challenge: Challenge):
     write_config(config)
     Path.mkdir(challenge.path, parents=True, exist_ok=True)
     Core(challenge)
+
+
+def add_ctf(ctf: CTF):
+    ctfs = get_ctfs()
+    ctfs.append(ctf)
+    config = read_config()
+    config["ctfs"] = [ctf.model_dump() for ctf in ctfs]
+    write_config(config)
+    ctf.path.mkdir(parents=True, exist_ok=True)
+
+
+def fetch_and_add_remote(
+    ctf_name: str,
+    url: str,
+    username: str | None = None,
+    password: str | None = None,
+    token: str | None = None,
+):
+    try:
+        client = get_client(url)
+    except Exception:
+        print("[red]:x: Error:[/] Failed to get CTF client")
+        return
+    client.login(username=username, password=password, token=token)
+    path = (get_ctfs_path() / ctf_name).resolve()
+    ctf = CTF(
+        name=ctf_name,
+        path=path,
+        url=url,
+        username=username,
+        password=password,
+        token=token,
+    )
+    add_ctf(ctf)
+    challenges = client.challenges.get_all()
+    if not challenges:
+        print("[red]:x: Error:[/] No challenges found.")
+        return
+    for ch in challenges:
+        try:
+            category = Category[ch.category.lower()]
+        except KeyError:
+            category = Category.other
+
+        sanitized_name = ch.name.replace(" ", "-").lower()
+        extras = {
+            "description": ch.description,
+            "attachments": [att.model_dump() for att in ch.attachments],
+            "hints": [hint.model_dump() for hint in ch.hints],
+            "author": ch.author,
+        }
+
+        new_ch = Challenge(
+            ctf_id=ctf.id,
+            name=sanitized_name,
+            path=path / sanitized_name,
+            category=category,
+            points=ch.value,
+            solved=Solved.solved if ch.solved else Solved.unsolved,
+            extras=extras,
+            id=ch.id,
+        )
+
+        client.attachments.download_all(
+            attachments=ch.attachments, save_dir=new_ch.path
+        )
+        add_challenge(new_ch)
+        print(
+            f"[green]:tada: Success![/] Added challenge [medium_spring_green]{sanitized_name}[/] to CTF [medium_spring_green]{ctf_name}[/]."
+        )
+
+    return True
+
+
+def fetch(
+    ctf: CTF,
+    url: str,
+    username: str | None = None,
+    password: str | None = None,
+    token: str | None = None,
+):
+    try:
+        client = get_client(url)
+    except Exception:
+        print("[red]:x: Error:[/] Failed to get CTF client")
+        return
+    client.login(username=username, password=password, token=token)
+    challenges = client.challenges.get_all()
+    if not challenges:
+        print("[red]:x: Error:[/] No challenges found.")
+        return
+    for ch in challenges:
+        try:
+            category = Category[ch.category.lower()]
+        except KeyError:
+            category = Category.other
+
+        sanitized_name = ch.name.replace(" ", "-").lower()
+        extras = {
+            "description": ch.description,
+            "attachments": [att.model_dump() for att in ch.attachments],
+            "hints": [hint.model_dump() for hint in ch.hints],
+            "author": ch.author,
+        }
+
+        new_ch = Challenge(
+            ctf_id=ctf.id,
+            name=sanitized_name,
+            path=ctf.path / sanitized_name,
+            category=category,
+            points=ch.value,
+            solved=Solved.solved if ch.solved else Solved.unsolved,
+            extras=extras,
+            id=ch.id,
+        )
+
+        client.attachments.download_all(
+            attachments=ch.attachments, save_dir=new_ch.path
+        )
+        add_challenge(new_ch)
+        print(
+            f"[green]:tada: Success![/] Added challenge [medium_spring_green]{sanitized_name}[/] to CTF [medium_spring_green]{ctf.name}[/]."
+        )
