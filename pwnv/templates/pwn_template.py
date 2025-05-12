@@ -2,8 +2,9 @@ template = r"""#!/usr/bin/env python3
 
 from pwn import *
 
-host = args.HOST or ''
-port = int(args.PORT or 1337)
+con = ""
+
+host, port = con.replace(" ", ":").split(":")
 ssl = args.SSL or False
 
 binary = './binary'
@@ -52,12 +53,9 @@ def deobfuscate(val):
 
 
 def start(argv=[], *a, **kw):
-    if args.GDB:
-        return gdb.debug([elf.path] + argv, gdbscript=gdbscript, *a, **kw)
-    elif args.REMOTE:
-        return remote(host, port, ssl=ssl)
-    else:
-        return process([elf.path] + argv, *a, **kw)
+    if args.GDB: return gdb.debug([elf.path] + argv, gdbscript=gdbscript, *a, **kw)
+    elif args.REMOTE: return remote(host, port, ssl=ssl)
+    else: return process([elf.path] + argv, *a, **kw)
 
 
 p = start()
