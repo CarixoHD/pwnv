@@ -35,7 +35,13 @@ Repository = "https://github.com/CarixoHD/pwnv/"
 Issues = "https://github.com/CarixoHD/pwnv/issues"
 
 [tool.ruff]
-lint.ignore = ["F401", "F403"]
+exclude = ["pwnv/templates"]
+
+[tool.ruff.lint]
+select = ["F", "E", "I"]
+ignore = ["F403", "F405"]
+[tool.uv.workspace]
+members = ["CTF"]
 
 [project.scripts]
 pwnv = "pwnv:main"

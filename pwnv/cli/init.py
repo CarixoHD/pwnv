@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Annotated, Optional
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from pwnv.cli.utils import error, get_config_path, save_config, success, warn
 from pwnv.models import Init

@@ -5,7 +5,7 @@ from InquirerPy.base.control import Choice
 from rich import print
 from rich.markup import escape
 
-from pwnv.cli.utils.crud import get_challenges, get_ctfs, get_tags
+from pwnv.cli.utils.crud import challenges_for_ctf, get_ctfs, get_tags
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category, Solved
 
@@ -29,7 +29,9 @@ def _get_challenge_choices(challenges: Sequence[Challenge]) -> List[Choice]:
     ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
     return [
         Choice(
-            name=f"{ch.name:<50} [{ctf_names[ch.ctf_id]}][{'solved' if ch.solved == Solved.solved else 'unsolved'}][{ch.category.name}]",
+            name=f"{ch.name:<50} [{ctf_names[ch.ctf_id]}]["
+            f"{'solved' if ch.solved == Solved.solved else 'unsolved'}]"
+            f"[{ch.category.name}]",
             value=ch,
         )
         for ch in challenges
@@ -91,9 +93,8 @@ def prompt_text(msg: str) -> str:
 
 def show_challenge(challenge: Challenge):
     print(f"[blue]{escape('[' + challenge.name + ']')}[/]")
-    print(
-        f"[red]ctf[/] = '{list(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))[0].name}'"
-    )
+    ctf = next(ctf for ctf in get_ctfs() if ctf.id == challenge.ctf_id)
+    print(f"[red]ctf[/] = '{ctf.name}'")
     print(f"[red]category[/] = '{challenge.category.name}'")
     print(f"[red]path[/] = '{str(challenge.path)}'")
     print(f"[red]solved[/] = '{str(challenge.solved.name)}'")
@@ -107,6 +108,4 @@ def show_ctf(ctf: CTF):
     print(f"[red]path[/] = '{str(ctf.path)}'")
     print(f"[red]running[/] = '{str(ctf.running.name)}'")
     print(f"[red]date[/] = '{str(ctf.created_at.date())}'")
-    print(
-        f"[red]num_challenges[/] = {str(len(list(filter(lambda challenge: challenge.ctf_id == ctf.id, get_challenges()))))}"
-    )
+    print(f"[red]num_challenges[/] = {len(challenges_for_ctf(ctf))}")

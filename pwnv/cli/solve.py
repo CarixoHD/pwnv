@@ -1,7 +1,6 @@
 import asyncio
 
 import typer
-from InquirerPy import inquirer
 
 from pwnv.cli.utils import (
     add_tags,
@@ -11,11 +10,11 @@ from pwnv.cli.utils import (
     get_current_challenge,
     get_unsolved_challenges,
     prompt_challenge_selection,
+    prompt_text,
     remote_solve,
     success,
     update_challenge,
     warn,
-    prompt_text,
 )
 from pwnv.models.challenge import Solved
 
