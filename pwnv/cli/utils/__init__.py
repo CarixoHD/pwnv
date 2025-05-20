@@ -48,7 +48,6 @@ from pwnv.cli.utils.ui import (
     warn,
 )
 
-
 __all__ = [
     # config
     "get_config_path",

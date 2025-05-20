@@ -53,7 +53,8 @@ def add(name: str) -> None:
         path=ch_path, model_list=challenges_for_ctf(chosen_ctf)
     ):
         error(
-            f"[cyan]{name}[/] already exists in [cyan]{chosen_ctf.name}/{category.name}/[/]."
+            f"[cyan]{name}[/] already exists in "
+            f"[cyan]{chosen_ctf.name}/{category.name}/[/]."
         )
         return
 
