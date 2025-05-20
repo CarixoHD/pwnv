@@ -1,8 +1,9 @@
-from pydantic import BaseModel
-from enum import IntEnum
 import uuid
 from datetime import datetime
+from enum import IntEnum
 from pathlib import Path
+
+from pydantic import BaseModel
 
 
 class Status(IntEnum):
@@ -17,6 +18,3 @@ class CTF(BaseModel):
     path: Path
     running: Status = Status.running
     url: str | None = None
-    username: str | None = None
-    password: str | None = None
-    token: str | None = None

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from pwnv.models import Challenge
 
 

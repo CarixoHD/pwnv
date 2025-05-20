@@ -1,7 +1,8 @@
-from pydantic import BaseModel
-from enum import IntEnum
 import uuid
+from enum import IntEnum
 from pathlib import Path
+
+from pydantic import BaseModel
 
 
 class Category(IntEnum):

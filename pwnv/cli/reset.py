@@ -1,35 +1,48 @@
-import typer
 import shutil
+from pathlib import Path
+
+import typer
 from rich import print
+
 from pwnv.cli.utils import (
     config_exists,
     confirm,
+    get_config_path,
     get_ctfs_path,
-    get_config,
+    success,
 )
-
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
 @config_exists()
-def reset():
-    if not confirm("Are you sure you want to reset the environment?"):
+def reset() -> None:
+    if not confirm(
+        "This will delete the entire environment (config + files). Continue?",
+        default=False,
+    ):
+        print("[red]:x:[/] Aborted.")
         return
 
-    env_path = get_ctfs_path()
-    if confirm("Do you wish to delete all the CTF and challenge files?"):
+    env_path: Path = get_ctfs_path()
+    if env_path.exists() and confirm(
+        "Delete all CTF and challenge directories as well?", default=False
+    ):
         shutil.rmtree(env_path)
-    print(f"[green]:white_check_mark: Environment at {env_path} has been deleted.[/]")
+        success(f"Deleted workspace files at {env_path}")
 
-    # # config = read_config()
-    #     for challenge in get_challenges():
-    #         shutil.rmtree(challenge.path)
-    #     for ctf in get_ctfs():
-    #         shutil.rmtree(ctf.path)
-    print("[green]:white_check_mark: All CTF and challenge files have been deleted.[/]")
+    else:
+        success("Skipped workspace directory deletion.")
 
-    get_config().unlink()
-    print("[green]:white_check_mark: Environment has been reset.[/]")
-    print("[green]:white_check_mark: Run `pwnv init` to create a new environment.[/]")
+    cfg_path = get_config_path()
+    if cfg_path.exists():
+        cfg_path.unlink()
+        success(f"Removed config file at {cfg_path}")
+
+    else:
+        success("No config file found - nothing to remove.")
+
+    success("Workspace reset complete!")
+
+    print("Run [magenta]`pwnv init`[/] to bootstrap a fresh environment.")

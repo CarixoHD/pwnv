@@ -1,7 +1,9 @@
+from pathlib import Path
+
+from pydantic import BaseModel
+
 from pwnv.models.challenge import Challenge
 from pwnv.models.ctf import CTF
-from pydantic import BaseModel
-from pathlib import Path
 
 
 class Init(BaseModel):

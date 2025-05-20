@@ -4,8 +4,12 @@ from pwn import *
 
 con = ""
 
-host, port = con.replace(" ", ":").split(":")
-ssl = args.SSL or False
+try:
+    host, port = con.replace(" ", ":").split(":")
+except:
+    pass
+
+ssl = False
 
 binary = './binary'
 
@@ -13,10 +17,10 @@ gdbscript = '''
     c
 '''
 
-context.binary = elf = ELF(binary)
+elf  = context.binary = ELF(binary)
+libc = context.binary.libc
 context.terminal = ['tmux', 'splitw', '-h']
 
-if os.path.isfile("./libc.so.6"): libc = ELF('./libc.so.6', checksec=False)
 
 
 # utils
@@ -34,6 +38,8 @@ sl         = lambda *x, **y: p.sendline(*x, **y)
 sn         = lambda *x, **y: p.send(*x, **y)
 logbase    = lambda: log.info("libc base = %#x" % libc.address)
 logleak    = lambda name, val: log.info(name+" = %#x" % val)
+ls         = lambda x: log.success(x)
+lss        = lambda x: ls('\033[1;31;40m%s -> 0x%x \033[0m' % (x, eval(x)))
 one_gadget = lambda: [int(i) + libc.address for i in subprocess.check_output(['one_gadget', '--raw', '-l1', libc.path]).decode().split(' ')]
 
 # exit_handler stuff

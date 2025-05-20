@@ -1,276 +1,134 @@
+from typing import Annotated, List
+
 import typer
-from pwnv.models import Challenge
-from pwnv.models.challenge import Solved
+
 from pwnv.cli.utils import (
+    add_challenge,
+    challenges_exists,
+    challenges_for_ctf,
     config_exists,
-    read_config,
-    write_config,
+    confirm,
+    ctfs_exists,
+    error,
     get_challenges,
     get_ctfs,
-    is_duplicate,
-    get_tags,
-    set_tags,
-    select_challenge,
-    select_ctf,
-    select_category,
-    confirm,
-    select_tags,
-    get_current_ctf,
     get_current_challenge,
-    add_challenge,
+    get_current_ctf,
+    get_running_ctfs,
+    get_solved_challenges,
+    is_duplicate,
+    prompt_category_selection,
+    prompt_challenge_selection,
+    prompt_ctf_selection,
+    prompt_tags_selection,
+    remove_challenge,
+    sanitize,
+    show_challenge,
+    success,
+    warn,
 )
-from InquirerPy import inquirer
-from typing import Annotated
-
-from rich import print
-from rich.markup import escape
-import shutil
-
-from ctfbridge import get_client
+from pwnv.models import CTF, Challenge
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
 @config_exists()
-def add(name: str):
-    ctfs = get_ctfs()
-    if not ctfs:
-        print("[red]:x: Error:[/] No CTFs found.")
-        return
-
-    challenges = get_challenges()
-    ctf = get_current_ctf(ctfs)
-
-    if not ctf:
-        running_ctfs = list(filter(lambda ctf: ctf.running, ctfs))
-        if not running_ctfs:
-            print("[red]:x: Error:[/] No running CTFs found.")
-            return
-        ctf = select_ctf(running_ctfs, "Select a CTF to add the challenge to:")
-
-    path = ctf.path / name
-    ctf_challenges = list(
-        filter(lambda challenge: challenge.ctf_id == ctf.id, challenges)
+@ctfs_exists()
+def add(name: str) -> None:
+    chosen_ctf: CTF | None = get_current_ctf() or (
+        prompt_ctf_selection(get_running_ctfs(), "Select a running CTF:")
+        if get_running_ctfs()
+        else None
     )
-    if is_duplicate(name=name, model_list=ctf_challenges):
-        print(f"[red]:x: Error:[/] Challenge with name {name} already exists.")
+    if not chosen_ctf:
+        warn("No running CTFs found.")
+
         return
 
-    category = select_category()
-    challenge = Challenge(ctf_id=ctf.id, name=name, path=path, category=category)
+    category = prompt_category_selection()
+    ch_path = chosen_ctf.path / category.name / sanitize(name)
 
+    if ch_path.exists() or is_duplicate(
+        path=ch_path, model_list=challenges_for_ctf(chosen_ctf)
+    ):
+        error(
+            f"[cyan]{name}[/] already exists in [cyan]{chosen_ctf.name}/{category.name}/[/]."
+        )
+        return
+
+    challenge = Challenge(
+        ctf_id=chosen_ctf.id, name=name, path=ch_path, category=category
+    )
     add_challenge(challenge)
-
-    print(
-        f"[green]:tada: Success![/] Added challenge [medium_spring_green]{name}[/] to CTF [medium_spring_green]{ctf.name}[/]."
-    )
+    success(f"[cyan]{challenge.name}[/] added")
 
 
 @app.command()
 @config_exists()
-def remove():
-    ctfs = get_ctfs()
-    challenges = get_challenges()
-    if not challenges:
-        print("[red]:x: Error:[/] No challenges found.")
+@challenges_exists()
+def remove() -> None:
+    challenges: List[Challenge] = (
+        challenges_for_ctf(get_current_ctf()) if get_current_ctf() else get_challenges()
+    )
+    challenge = prompt_challenge_selection(challenges, "Select a challenge to remove:")
+
+    if challenge.path.exists() and any(challenge.path.iterdir()):
+        if not confirm("Directory not empty. Remove anyway?", default=False):
+            return
+
+    remove_challenge(challenge)
+    success(f"[cyan]{challenge.name}[/] removed")
+
+
+@app.command()
+@config_exists()
+@challenges_exists()
+def info(
+    all: Annotated[bool, typer.Option(help="Show challenges from all CTFs")] = False,
+) -> None:
+    current = get_current_challenge()
+    if current:
+        show_challenge(current)
         return
-
-    ctf = get_current_ctf(ctfs)
-
-    if not ctf:
-        ctfs_with_challenges = list(
-            filter(
-                lambda ctf: any(challenge.ctf_id == ctf.id for challenge in challenges),
-                ctfs,
+    challenges = (
+        get_challenges()
+        if all
+        else (
+            challenges_for_ctf(
+                get_current_ctf()
+                if get_current_ctf()
+                else prompt_ctf_selection(get_ctfs(), "Select a CTF:")
             )
         )
-
-        ctf = select_ctf(
-            ctfs_with_challenges, "Select a CTF to remove the challenge from:"
-        )
-
-    ctf_challenges = list(
-        filter(lambda challenge: challenge.ctf_id == ctf.id, challenges)
     )
-    if not ctf_challenges:
-        print("[red]:x: Error:[/] No challenges found.")
-        return
-
-    challenge = select_challenge(ctf_challenges, "Select a challenge to remove:")
-
-    if any(challenge.path.iterdir()):
-        if not confirm(
-            "Challenge directory is not empty. Are you sure you want to remove it?",
-            False,
-        ):
-            return
-
-    challenges.remove(challenge)
-
-    config = read_config()
-    config["challenges"] = [challenge.model_dump() for challenge in challenges]
-    write_config(config)
-    shutil.rmtree(challenge.path)
-
-    print(
-        f"[green]:tada: Success![/] Removed challenge [medium_spring_green]{challenge.name}[/] from CTF [medium_spring_green]{ctf.name}[/]."
-    )
-
-
-@app.command()
-@config_exists()
-def info(
-    all: Annotated[bool, typer.Option(help="List all challenges")] = False,
-):
-    challenges = get_challenges()
-    current_ctf = get_current_ctf(get_ctfs())
 
     if not challenges:
-        print("[bold red]:x: Error:[/] No challenges found.")
+        warn("No challenges found.")
         return
-
-    current_challenge = get_current_challenge(challenges)
-    if current_challenge and not all:
-        show_challenge(current_challenge)
-        return
-
-    if current_ctf and not all:
-        challenges = list(
-            filter(lambda challenge: challenge.ctf_id == current_ctf.id, challenges)
-        )
 
     while True:
-        challenge = select_challenge(challenges, "Select a challenge to view:")
-        show_challenge(challenge)
-        input("Press Enter to continue...")
+        show_challenge(prompt_challenge_selection(challenges, "Select a challenge:"))
+        if not confirm("Show another?", default=False):
+            break
 
 
 @app.command(name="filter")
 @config_exists()
-def filter_():
-    challenges = get_challenges()
-    solved_challenges = list(
-        filter(lambda challenge: challenge.solved == Solved.solved, challenges)
-    )
-    if not solved_challenges:
-        print("[bold red]:x: Error:[/] No solved challenges found.")
+@challenges_exists()
+def filter_() -> None:
+    solved = get_solved_challenges()
+    if not solved:
+        warn("No solved challenges found.")
         return
 
     while True:
-        chosen_tags = select_tags("Select tags to filter by:")
-        filtered_challenges = list(
-            filter(
-                lambda challenge: any(
-                    (challenge.tags and tag in challenge.tags) for tag in chosen_tags
-                ),
-                solved_challenges,
-            )
-        )
-        if not filtered_challenges:
-            print("[bold red]:x: Error:[/] No challenges found.")
-        challenge = select_challenge(filtered_challenges, "Select a challenge to view:")
-        show_challenge(challenge)
-        input("Press Enter to continue...")
+        tags = prompt_tags_selection("Select tags to filter by:")
+        subset = [ch for ch in solved if ch.tags and any(t in ch.tags for t in tags)]
+        if not subset:
+            warn("No challenges match your tags.")
 
-
-@app.command()
-@config_exists()
-def solve(
-    no_tags: Annotated[
-        bool, typer.Option(help="Do not add tags to the challenge")
-    ] = False,
-    no_flag: Annotated[
-        bool, typer.Option(help="Do not add a flag to the challenge")
-    ] = False,
-):
-    challenges = get_challenges()
-
-    unsolved_challenges = list(
-        filter(lambda challenge: challenge.solved == Solved.unsolved, challenges)
-    )
-    if not unsolved_challenges:
-        print("[bold red]:x: Error:[/] No unsolved challenges found.")
-        return
-
-    current_challenge = get_current_challenge(challenges)
-    if current_challenge:
-        challenge = current_challenge
-    else:
-        challenge = select_challenge(
-            unsolved_challenges, "Select a challenge to mark as solved:"
-        )
-    if not confirm(
-        f"Are you sure you want to mark challenge {challenge.name} as solved?", True
-    ):
-        return
-    index = challenges.index(challenge)
-    challenge.solved = Solved.solved
-    tags = get_tags()
-
-    if not no_tags:
-        while not (
-            raw_tags := inquirer.text(
-                message="Enter tags for the challenge (comma separated):"
-            ).execute()
-        ):
-            print("[red]:x: Error:[/] Tags cannot be empty.")
-
-        chosen_tags = [item.strip() for item in raw_tags.split(",")] if raw_tags else []
-
-        tags.extend(chosen_tags)
-
-        set_tags(list(set(tags)))
-        challenge.tags = list(set(chosen_tags))
-    if not no_flag:
-        while not (
-            flag := inquirer.text(message="Enter the flag for the challenge:").execute()
-        ):
-            print("[red]:x: Error:[/] Flag cannot be empty.")
-
-        challenge.flag = flag
-
-    config = read_config()
-    config["challenges"][index] = challenge.model_dump()
-
-    # check if the ctf connected to the challenge is running
-    ctf = next(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))
-    if ctf.url:
-        client = get_client(ctf.url)
-        client.login(
-            ctf.username,
-            ctf.password,
-            ctf.token,
-        )
-        try:
-            result = client.challenges.submit(
-                challenge_id=challenge.id,
-                flag=challenge.flag,
-            )
-            if result.correct:
-                print(
-                    f"[green]:tada: Success![/] Flag [medium_spring_green]{challenge.flag}[/] submitted to CTF [medium_spring_green]{ctf.name}[/]."
-                )
-            else:
-                print(
-                    f"[red]:x: Error:[/] Flag [medium_spring_green]{challenge.flag}[/] is incorrect. Please check the flag and try again."
-                )
-        except Exception:
-            print(
-                f"[red]:x: Error:[/] Failed to submit flag [medium_spring_green]{challenge.flag}[/] to CTF [medium_spring_green]{ctf.name}[/]."
-            )
-
-    write_config(config)
-
-
-def show_challenge(challenge: Challenge):
-    print(f"[blue]{escape('[' + challenge.name + ']')}[/]")
-    print(
-        f"[red]ctf[/] = '{list(filter(lambda ctf: ctf.id == challenge.ctf_id, get_ctfs()))[0].name}'"
-    )
-    print(f"[red]category[/] = '{challenge.category.name}'")
-    print(f"[red]path[/] = '{str(challenge.path)}'")
-    print(f"[red]solved[/] = '{str(challenge.solved.name)}'")
-    print(f"[red]points[/] = '{str(challenge.points)}'")
-    print(f"[red]flag[/] = '{str(challenge.flag)}'")
-    print(f"[red]tags[/] = '{', '.join(challenge.tags) if challenge.tags else ''}'")
+        else:
+            show_challenge(prompt_challenge_selection(subset, "Select a challenge:"))
+        if not confirm("Filter again?", default=False):
+            break

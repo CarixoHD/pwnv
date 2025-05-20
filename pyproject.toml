@@ -1,19 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+
 [project]
 name = "pwnv"
-version = "0.2.0"
+version = "0.3.0"
 description = "CLI tool for CTF management"
 readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "Shayan Alinejad", email = "shayan.alinejad@proton.me"}
+]
 requires-python = ">=3.12"
 dependencies = [
-    "ctfbridge>=0.1.4",
+    "ctfbridge>=0.2.1",
+    "dotenv>=0.9.9",
+    "filelock>=3.18.0",
+    "inquirer>=3.4.0",
     "inquirerpy>=0.3.4",
     "pydantic>=2.10.3",
     "typer>=0.15.1",
-    # "uv>=0.5.9",
 ]
+
+[project.optional-dependencies]
+dev = [
+  "mypy",
+  "ruff",
+  "pre-commit",
+]
+
+[project.urls]
+Repository = "https://github.com/CarixoHD/pwnv/"
+Issues = "https://github.com/CarixoHD/pwnv/issues"
+
+[tool.ruff]
+lint.ignore = ["F401", "F403"]
 
 [project.scripts]
 pwnv = "pwnv:main"
-
-[tool.uv.workspace]
-members = ["CTF"]

@@ -1,8 +1,7 @@
 from pwnv.models import Challenge
 from pwnv.models.challenge import Category
-from pwnv.plugins.plugin import ChallengePlugin
 from pwnv.plugins import PwnPlugin
-
+from pwnv.plugins.plugin import ChallengePlugin
 
 PLUGIN_REGISTRY: dict[Category, ChallengePlugin] = {
     Category.pwn: PwnPlugin(),
@@ -10,7 +9,7 @@ PLUGIN_REGISTRY: dict[Category, ChallengePlugin] = {
 }
 
 
-class Core(object):
+class Core:
     def __init__(self, challenge: Challenge):
         plugin = PLUGIN_REGISTRY.get(challenge.category)
         if plugin:

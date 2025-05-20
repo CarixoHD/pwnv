@@ -1,6 +1,6 @@
+from pwnv.models import Challenge
 from pwnv.plugins.plugin import ChallengePlugin
 from pwnv.templates import pwn_template
-from pwnv.models import Challenge
 
 
 class PwnPlugin(ChallengePlugin):
