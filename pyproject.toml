@@ -40,8 +40,6 @@ exclude = ["pwnv/templates"]
 [tool.ruff.lint]
 select = ["F", "E", "I"]
 ignore = ["F403", "F405"]
-[tool.uv.workspace]
-members = ["CTF"]
 
 [project.scripts]
 pwnv = "pwnv:main"
