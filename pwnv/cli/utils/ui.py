@@ -19,7 +19,7 @@ def error(msg: str):
 
 
 def warn(msg: str):
-    print(f"[yellow]⚠[/] {msg}")
+    print(f"[yellow]Warning:[/] {msg}")
 
 
 _BasicChoice = Union[CTF, Challenge]

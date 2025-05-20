@@ -182,11 +182,11 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> None:
     try:
         res = await client.challenges.submit(challenge.extras["slug"], flag)
         if res.correct:
-            success(f"flag [cyan]{flag}[/] accepted!")
+            success(f"Flag [cyan]{flag}[/] accepted!")
 
             return True
         else:
-            error(f"flag [cyan]{flag}[/] incorrect")
+            error(f"Flag [cyan]{flag}[/] incorrect")
             return False
     except Exception:
         error(f"Failed to submit flag '{flag}'.")

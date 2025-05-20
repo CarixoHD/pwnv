@@ -15,6 +15,7 @@ from pwnv.cli.utils import (
     success,
     update_challenge,
     warn,
+    prompt_text,
 )
 from pwnv.models.challenge import Solved
 
@@ -37,7 +38,7 @@ def solve(flag: str = "") -> None:
 
     challenge.solved = Solved.solved
     if not flag:
-        flag = inquirer.text(message="Enter the flag:").execute().strip()
+        flag = prompt_text("Enter the flag:")
 
     if flag:
         challenge.flag = flag
@@ -46,8 +47,7 @@ def solve(flag: str = "") -> None:
     if (ctf.path / ".env").exists():
         if not asyncio.run(remote_solve(challenge=challenge, ctf=ctf, flag=flag)):
             return
-
-    raw = inquirer.text(message="Enter tags (comma-separated):").execute().strip()
+    raw = prompt_text("Enter tags (comma-separated):")
     if raw:
         tags = {t.strip().lower() for t in raw.split(",") if t.strip()}
         add_tags(tags)

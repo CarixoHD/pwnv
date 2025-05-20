@@ -51,31 +51,29 @@ def init(
             f"Create new CTF directory at {ctfs_folder}?", abort=True, default=True
         )
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-    ) as bar:
-        bar.add_task(description="Initialising workspace", start=False)
+    # with Progress(
+    #     SpinnerColumn(),
+    #     TextColumn("[progress.description]{task.description}"),
+    #     transient=True,
+    # ) as bar:
+    #     bar.add_task(description="Initialising workspace", start=False)
 
-        ctfs_folder.mkdir(parents=True, exist_ok=True)
-        init_model = Init(
-            ctfs_path=ctfs_folder, challenge_tags=[], ctfs=[], challenges=[]
-        )
-        save_config(init_model.model_dump())
+    ctfs_folder.mkdir(parents=True, exist_ok=True)
+    init_model = Init(ctfs_path=ctfs_folder, challenge_tags=[], ctfs=[], challenges=[])
+    save_config(init_model.model_dump())
 
-        if (
-            not subprocess.run(
-                ["uv", "init", str(ctfs_folder), "--bare", "--vcs", "git"]
-            ).returncode
-            == 0
-        ):
-            error("Failed to initialise uv environment.")
+    if (
+        not subprocess.run(
+            ["uv", "init", str(ctfs_folder), "--bare", "--vcs", "git"]
+        ).returncode
+        == 0
+    ):
+        error("Failed to initialise uv environment.")
 
-            return
-        os.chdir(ctfs_folder)
-        if not subprocess.run(["uv", "add", *_PKGS]).returncode == 0:
-            warn("Failed to add default packages.")
+        return
+    os.chdir(ctfs_folder)
+    if not subprocess.run(["uv", "add", *_PKGS]).returncode == 0:
+        warn("Failed to add default packages.")
 
-            return
+        return
     success(f"Activate with `source {env_path}/bin/activate`. Happy hacking!")

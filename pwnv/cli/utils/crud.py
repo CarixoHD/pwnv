@@ -54,17 +54,14 @@ def get_tags() -> set[str]:
     return set(load_config().get("challenge_tags", []))
 
 
-def get_current_ctf(path: Path | None = None) -> CTF | None:
-    """Return the *nearest* CTF that `path` lives in (or *cwd*)."""
-    path = path or Path.cwd()
+def get_current_ctf(path: Path = Path.cwd()) -> CTF | None:
     for ctf in get_ctfs():
         if path.is_relative_to(ctf.path):
             return ctf
     return None
 
 
-def get_current_challenge(path: Path | None = None) -> Challenge | None:
-    path = path or Path.cwd()
+def get_current_challenge(path: Path = Path.cwd()) -> Challenge | None:
     for ch in get_challenges():
         if path.is_relative_to(ch.path):
             return ch
@@ -138,6 +135,7 @@ def remove_challenge(ch: Challenge) -> None:
         shutil.rmtree(ch.path)
 
 
+# [MISC]
 def is_duplicate(
     *,
     name: str | None = None,

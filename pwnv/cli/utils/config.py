@@ -37,7 +37,6 @@ _lock = SoftFileLock(str(config_path) + ".lock")
 
 @lru_cache(maxsize=1)
 def load_config() -> dict:
-    """Read *config.json*; return an empty structure on first use."""
     if not config_path.exists():
         return {"ctfs": [], "challenges": [], "challenge_tags": []}
     with open(config_path) as f:
@@ -49,7 +48,6 @@ def _invalidate_cache() -> None:
 
 
 def save_config(cfg: dict) -> None:
-    """Atomically write *cfg* to disk while holding a soft file-lock."""
     cfg.setdefault("ctfs", [])
     cfg.setdefault("challenges", [])
     cfg.setdefault("challenge_tags", [])
