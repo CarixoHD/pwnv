@@ -2,18 +2,12 @@ import asyncio
 import atexit
 import os
 import re
-from typing import List
 
-from ctfbridge import create_client
-from ctfbridge.models.auth import AuthMethod
-from ctfbridge.models.challenge import Challenge as RemoteChallenge
 from dotenv import load_dotenv
-from InquirerPy import inquirer
 
-from pwnv.cli.utils.crud import add_challenge, add_ctf, remove_ctf
 from pwnv.cli.utils.ui import error, prompt_text, success, warn
 from pwnv.models import CTF, Challenge
-from pwnv.models.challenge import Category, Solved
+from pwnv.models.challenge import Category
 
 _keyword_map = {
     "pwn": Category.pwn,
@@ -45,7 +39,10 @@ def normalise_category(raw: str) -> Category:
     return _keyword_map.get(key, Category.other)
 
 
-def _ask_for_credentials(methods: List[AuthMethod]) -> dict:
+def _ask_for_credentials(methods) -> dict:
+    from ctfbridge.models.auth import AuthMethod
+    from InquirerPy import inquirer
+
     creds = {"username": None, "password": None, "token": None}
     chosen = inquirer.select(
         message="Choose authentication method:",
@@ -74,6 +71,8 @@ def _run_async(coro):
 
 
 def add_remote_ctf(ctf: CTF) -> None:
+    from pwnv.cli.utils.crud import add_ctf, remove_ctf
+
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
     creds = _ask_for_credentials(methods)
     if not creds:
@@ -102,7 +101,9 @@ def add_remote_ctf(ctf: CTF) -> None:
     _run_async(add_remote_challenges(client, ctf, challenges))
 
 
-async def get_remote_credential_methods(url: str) -> List[AuthMethod]:
+async def get_remote_credential_methods(url: str):
+    from ctfbridge import create_client
+
     client = await create_client(url=url)
     methods = await client.auth.get_supported_auth_methods()
     return client, methods
@@ -118,7 +119,7 @@ async def create_remote_session(client, creds, ctf) -> bool:
         return False
 
 
-async def get_remote_challenges(client, ctf) -> List[RemoteChallenge]:
+async def get_remote_challenges(client, ctf):
     try:
         await client.session.load(ctf.path / ".session")
         challenges = await client.challenges.get_all()
@@ -128,9 +129,10 @@ async def get_remote_challenges(client, ctf) -> List[RemoteChallenge]:
         return None
 
 
-async def add_remote_challenges(
-    client, ctf: CTF, challenges: List[RemoteChallenge]
-) -> None:
+async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
+    from pwnv.cli.utils.crud import add_challenge
+    from pwnv.models.challenge import Solved
+
     for ch in challenges:
         category = normalise_category(ch.category)
         name = sanitize(ch.name)
@@ -159,6 +161,8 @@ async def add_remote_challenges(
 
 
 async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> None:
+    from ctfbridge import create_client
+
     client = await create_client(ctf.url)
     if (ctf.path / ".session").exists():
         try:

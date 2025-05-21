@@ -1,9 +1,8 @@
-import typer
-
-from pwnv.cli import challenge_app, ctf_app, init_app, reset_app, solve_app
-
-
 def main():
+    import typer
+
+    from pwnv.cli import challenge_app, ctf_app, init_app, reset_app, solve_app
+
     app = typer.Typer(no_args_is_help=True)
     app.add_typer(challenge_app, name="challenge")
     app.add_typer(ctf_app, name="ctf")

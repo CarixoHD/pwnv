@@ -5,7 +5,6 @@ from typing import List
 from pwnv.cli.utils.config import load_config, save_config
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Solved
-from pwnv.setup import Core
 
 
 # -- [CRUD] --
@@ -77,6 +76,8 @@ def add_ctf(ctf: CTF) -> None:
 
 
 def add_challenge(ch: Challenge) -> None:
+    from pwnv.setup import Core
+
     cfg = load_config()
     cfg.setdefault("challenges", []).append(ch.model_dump())
     save_config(cfg)

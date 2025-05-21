@@ -1,7 +1,5 @@
-from typing import List, Sequence, Union
+from typing import List, Sequence
 
-from InquirerPy import inquirer
-from InquirerPy.base.control import Choice
 from rich import print
 from rich.markup import escape
 
@@ -22,10 +20,9 @@ def warn(msg: str):
     print(f"[yellow]Warning:[/] {msg}")
 
 
-_BasicChoice = Union[CTF, Challenge]
+def _get_challenge_choices(challenges: Sequence[Challenge]):
+    from InquirerPy.base.control import Choice
 
-
-def _get_challenge_choices(challenges: Sequence[Challenge]) -> List[Choice]:
     ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
     return [
         Choice(
@@ -38,7 +35,9 @@ def _get_challenge_choices(challenges: Sequence[Challenge]) -> List[Choice]:
     ]
 
 
-def _get_ctf_choices(ctfs: Sequence[CTF]) -> List[Choice]:
+def _get_ctf_choices(ctfs: Sequence[CTF]):
+    from InquirerPy.base.control import Choice
+
     return [
         Choice(name=f"{ctf.name:<50} [{ctf.created_at.year}]", value=ctf)
         for ctf in ctfs
@@ -46,15 +45,19 @@ def _get_ctf_choices(ctfs: Sequence[CTF]) -> List[Choice]:
 
 
 def confirm(message: str, default: bool = True, **kwargs):
+    from InquirerPy import inquirer
+
     return inquirer.confirm(message=message, default=default, **kwargs).execute()
 
 
 def fuzzy_select(
     *,
-    choices: Sequence[_BasicChoice | Choice | str],
+    choices,
     message: str = "Select:",
     **kwargs,
 ):
+    from InquirerPy import inquirer
+
     return inquirer.fuzzy(
         message=message, choices=list(choices), border=True, **kwargs
     ).execute()
@@ -88,6 +91,8 @@ def prompt_tags_selection(msg: str) -> List[str]:
 
 
 def prompt_text(msg: str) -> str:
+    from InquirerPy import inquirer
+
     return inquirer.text(message=msg).execute().strip()
 
 

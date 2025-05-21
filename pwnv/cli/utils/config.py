@@ -4,7 +4,6 @@ from functools import lru_cache
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-import typer
 from dotenv import load_dotenv
 from filelock import SoftFileLock
 
@@ -16,6 +15,8 @@ _DEFAULT_BASENAME = "config.json"
 
 
 def _resolve_config_path() -> Path:
+    import typer
+
     if override := os.getenv(_CONFIG_ENV):
         return Path(override).expanduser().resolve()
 
