@@ -63,6 +63,12 @@ Use `--help` on any subcommand for more info.
 
 ## 🏗️ Installation
 
+### Via pip
+
+```bash
+pip install pwnv
+```
+
 ### From source (recommended for dev)
 
 ```bash
