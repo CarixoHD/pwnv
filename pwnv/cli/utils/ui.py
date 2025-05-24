@@ -13,11 +13,19 @@ def success(msg: str):
 
 
 def error(msg: str):
-    print(f"[red]Error:[/] {msg}")
+    print(f"[red]error:[/] {msg}")
 
 
 def warn(msg: str):
-    print(f"[yellow]Warning:[/] {msg}")
+    print(f"[yellow]warning:[/] {msg}")
+
+
+def info(msg: str):
+    print(f"[blue]info:[/] {msg}")
+
+
+def command(msg: str):
+    return f"[cyan]`{msg}`[/]"
 
 
 def _get_challenge_choices(challenges: Sequence[Challenge]):
@@ -44,13 +52,13 @@ def _get_ctf_choices(ctfs: Sequence[CTF]):
     ]
 
 
-def confirm(message: str, default: bool = True, **kwargs):
+def prompt_confirm(message: str, default: bool = True, **kwargs):
     from InquirerPy import inquirer
 
     return inquirer.confirm(message=message, default=default, **kwargs).execute()
 
 
-def fuzzy_select(
+def prompt_fuzzy_select(
     *,
     choices,
     message: str = "Select:",
@@ -64,7 +72,7 @@ def fuzzy_select(
 
 
 def prompt_challenge_selection(challenges: Sequence[Challenge], msg: str) -> Challenge:
-    return fuzzy_select(
+    return prompt_fuzzy_select(
         choices=_get_challenge_choices(challenges),
         message=msg,
         transformer=lambda r: r.split(" ")[0],
@@ -72,7 +80,7 @@ def prompt_challenge_selection(challenges: Sequence[Challenge], msg: str) -> Cha
 
 
 def prompt_ctf_selection(ctfs: Sequence[CTF], msg: str) -> CTF:
-    return fuzzy_select(
+    return prompt_fuzzy_select(
         choices=_get_ctf_choices(ctfs),
         message=msg,
         transformer=lambda r: r.split(" ")[0],
@@ -80,14 +88,14 @@ def prompt_ctf_selection(ctfs: Sequence[CTF], msg: str) -> CTF:
 
 
 def prompt_category_selection() -> Category:
-    category = fuzzy_select(
+    category = prompt_fuzzy_select(
         choices=[c.name for c in Category], message="Select category:"
     )
     return Category[category]
 
 
 def prompt_tags_selection(msg: str) -> List[str]:
-    return fuzzy_select(choices=list(get_tags()), message=msg, multiselect=True)
+    return prompt_fuzzy_select(choices=list(get_tags()), message=msg, multiselect=True)
 
 
 def prompt_text(msg: str) -> str:

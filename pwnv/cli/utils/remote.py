@@ -74,6 +74,8 @@ def add_remote_ctf(ctf: CTF) -> None:
     from pwnv.cli.utils.crud import add_ctf, remove_ctf
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
+    if client is None:
+        return
     creds = _ask_for_credentials(methods)
     if not creds:
         return
@@ -104,7 +106,11 @@ def add_remote_ctf(ctf: CTF) -> None:
 async def get_remote_credential_methods(url: str):
     from ctfbridge import create_client
 
-    client = await create_client(url=url)
+    try:
+        client = await create_client(url=url)
+    except Exception:
+        error("Failed to get client.")
+        return None, None
     methods = await client.auth.get_supported_auth_methods()
     return client, methods
 

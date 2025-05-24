@@ -34,12 +34,14 @@ from pwnv.cli.utils.remote import (
     sanitize,
 )
 from pwnv.cli.utils.ui import (
-    confirm,
+    command,
     error,
-    fuzzy_select,
+    info,
     prompt_category_selection,
     prompt_challenge_selection,
+    prompt_confirm,
     prompt_ctf_selection,
+    prompt_fuzzy_select,
     prompt_tags_selection,
     prompt_text,
     show_challenge,
@@ -85,9 +87,9 @@ __all__ = [
     "remote_solve",
     "sanitize",
     # ui
-    "confirm",
+    "prompt_confirm",
     "error",
-    "fuzzy_select",
+    "prompt_fuzzy_select",
     "prompt_category_selection",
     "prompt_challenge_selection",
     "prompt_ctf_selection",
@@ -97,4 +99,6 @@ __all__ = [
     "show_ctf",
     "success",
     "warn",
+    "info",
+    "command",
 ]

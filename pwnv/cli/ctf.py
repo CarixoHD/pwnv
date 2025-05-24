@@ -6,7 +6,6 @@ from pwnv.cli.utils import (
     add_ctf,
     add_remote_ctf,
     config_exists,
-    confirm,
     ctfs_exists,
     error,
     get_ctfs,
@@ -15,6 +14,7 @@ from pwnv.cli.utils import (
     get_running_ctfs,
     get_stopped_ctfs,
     is_duplicate,
+    prompt_confirm,
     prompt_ctf_selection,
     prompt_text,
     remove_ctf,
@@ -39,7 +39,7 @@ def add(name: str):
 
         return
 
-    if confirm(
+    if prompt_confirm(
         "Do you want to add a remote CTF? (y/n)",
         default=False,
     ):
@@ -54,7 +54,7 @@ def add(name: str):
 @ctfs_exists()
 def remove():
     chosen_ctf = prompt_ctf_selection(get_ctfs(), "Select a CTF to remove:")
-    if not confirm(
+    if not prompt_confirm(
         f"Remove CTF '{chosen_ctf.name}' and all its challenges?",
         default=False,
     ):
@@ -70,7 +70,7 @@ def info():
     while True:
         ctfs: list[CTF] = get_ctfs()
         show_ctf(prompt_ctf_selection(ctfs, "Select a CTF to show info:"))
-        if not confirm("Show another CTF?", default=False):
+        if not prompt_confirm("Show another CTF?", default=False):
             break
 
 

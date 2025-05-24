@@ -7,7 +7,6 @@ from pwnv.cli.utils import (
     challenges_exists,
     challenges_for_ctf,
     config_exists,
-    confirm,
     ctfs_exists,
     error,
     get_challenges,
@@ -19,6 +18,7 @@ from pwnv.cli.utils import (
     is_duplicate,
     prompt_category_selection,
     prompt_challenge_selection,
+    prompt_confirm,
     prompt_ctf_selection,
     prompt_tags_selection,
     remove_challenge,
@@ -75,7 +75,7 @@ def remove() -> None:
     challenge = prompt_challenge_selection(challenges, "Select a challenge to remove:")
 
     if challenge.path.exists() and any(challenge.path.iterdir()):
-        if not confirm("Directory not empty. Remove anyway?", default=False):
+        if not prompt_confirm("Directory not empty. Remove anyway?", default=False):
             return
 
     remove_challenge(challenge)
@@ -110,7 +110,7 @@ def info(
 
     while True:
         show_challenge(prompt_challenge_selection(challenges, "Select a challenge:"))
-        if not confirm("Show another?", default=False):
+        if not prompt_confirm("Show another?", default=False):
             break
 
 
@@ -131,5 +131,5 @@ def filter_() -> None:
 
         else:
             show_challenge(prompt_challenge_selection(subset, "Select a challenge:"))
-        if not confirm("Filter again?", default=False):
+        if not prompt_confirm("Filter again?", default=False):
             break

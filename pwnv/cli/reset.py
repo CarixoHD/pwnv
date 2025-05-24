@@ -1,15 +1,19 @@
 import shutil
+import tempfile
 from pathlib import Path
 
 import typer
 from rich import print
 
 from pwnv.cli.utils import (
+    command,
     config_exists,
-    confirm,
     get_config_path,
     get_ctfs_path,
+    info,
+    prompt_confirm,
     success,
+    warn,
 )
 
 app = typer.Typer(no_args_is_help=True)
@@ -18,31 +22,61 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 @config_exists()
 def reset() -> None:
-    if not confirm(
+    print("[red]" + "-" * 40 + " WARNING! " + "-" * 40 + "[/]")
+    if not prompt_confirm(
         "This will delete the entire environment (config + files). Continue?",
         default=False,
     ):
-        print("[red]:x:[/] Aborted.")
+        warn("Aborting reset.")
         return
-
-    env_path: Path = get_ctfs_path()
-    if env_path.exists() and confirm(
-        "Delete all CTF and challenge directories as well?", default=False
+    ctfs_path = get_ctfs_path()
+    cfg_path = get_config_path()
+    if prompt_confirm(
+        "Do you want to backup the current environment as a tar.gz file?",
+        default=False,
     ):
-        shutil.rmtree(env_path)
-        success(f"Deleted workspace files at {env_path}")
+        backup_base = Path.home() / "pwnv_backup"
+        backup_archive = backup_base.with_suffix(".tar.gz")
+
+        if backup_archive.exists():
+            if not prompt_confirm(
+                f"Backup file already exists at {backup_archive}. Overwrite?",
+                default=False,
+            ):
+                warn("Aborting backup creation.")
+                return
+            backup_archive.unlink()
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmp = Path(tmpdir)
+
+                def ignore_pwnvenv(dir, contents):
+                    return [".pwnvenv"] if ".pwnvenv" in contents else []
+
+                shutil.copytree(ctfs_path, tmp / ctfs_path.name, ignore=ignore_pwnvenv)
+                shutil.copy(cfg_path, tmp / cfg_path.name)
+
+                shutil.make_archive(str(backup_base), "gztar", root_dir=tmp)
+
+            success(f"Backup created at {backup_archive}")
+        except Exception as e:
+            warn(f"Backup failed: {e}")
+
+    if ctfs_path.exists():
+        shutil.rmtree(ctfs_path)
+        success(f"Removed CTF files at {ctfs_path}")
 
     else:
-        success("Skipped workspace directory deletion.")
+        info("No CTF files found - nothing to remove.")
 
-    cfg_path = get_config_path()
     if cfg_path.exists():
         cfg_path.unlink()
         success(f"Removed config file at {cfg_path}")
 
     else:
-        success("No config file found - nothing to remove.")
+        info("No config file found - nothing to remove.")
 
     success("Workspace reset complete!")
 
-    print("Run [magenta]`pwnv init`[/] to bootstrap a fresh environment.")
+    info(f"Run {command('pwnv init')} to bootstrap a fresh environment.")

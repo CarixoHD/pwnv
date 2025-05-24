@@ -18,10 +18,11 @@ def _guard(predicate, msg):
 
 def config_exists():
     from pwnv.cli.utils.config import get_config_path
+    from pwnv.cli.utils.ui import command
 
     return _guard(
         lambda: get_config_path().exists(),
-        "No config. Run [magenta]`pwnv init`[/]. ",
+        f"No config. Run {command('pwnv init')}. ",
     )
 
 
