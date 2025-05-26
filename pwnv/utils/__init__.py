@@ -1,17 +1,21 @@
-from pwnv.cli.utils.config import (
+from pwnv.utils.config import (
     get_config_path,
+    get_config_value,
     get_ctfs_path,
     load_config,
     save_config,
+    set_config_value,
 )
-from pwnv.cli.utils.crud import (
+from pwnv.utils.crud import (
     add_challenge,
     add_ctf,
     add_tags,
     challenges_for_ctf,
     ctfs_with_challenges,
+    get_challenge_by_name,
     get_challenges,
     get_ctf_by_challenge,
+    get_ctf_by_name,
     get_ctfs,
     get_current_challenge,
     get_current_ctf,
@@ -26,14 +30,30 @@ from pwnv.cli.utils.crud import (
     update_challenge,
     update_ctf,
 )
-from pwnv.cli.utils.guards import challenges_exists, config_exists, ctfs_exists
-from pwnv.cli.utils.remote import (
+from pwnv.utils.guards import (
+    challenges_exists,
+    config_exists,
+    ctfs_exists,
+    plugins_exists,
+)
+from pwnv.utils.plugin import (
+    create_plugin_file,
+    get_plugin_selection,
+    get_plugins_directory,
+    get_selected_plugin_for_category,
+    get_templates_directory,
+    load_template_content,
+    remove_selected_plugin_for_category,
+    save_plugin_selection,
+    set_selected_plugin_for_category,
+)
+from pwnv.utils.remote import (
     add_remote_ctf,
     normalise_category,
     remote_solve,
     sanitize,
 )
-from pwnv.cli.utils.ui import (
+from pwnv.utils.ui import (
     command,
     error,
     info,
@@ -42,10 +62,12 @@ from pwnv.cli.utils.ui import (
     prompt_confirm,
     prompt_ctf_selection,
     prompt_fuzzy_select,
+    prompt_plugin_selection,
     prompt_tags_selection,
     prompt_text,
     show_challenge,
     show_ctf,
+    show_plugin,
     success,
     warn,
 )
@@ -56,6 +78,8 @@ __all__ = [
     "get_ctfs_path",
     "load_config",
     "save_config",
+    "get_config_value",
+    "set_config_value",
     # crud
     "add_challenge",
     "add_ctf",
@@ -77,10 +101,13 @@ __all__ = [
     "remove_ctf",
     "update_challenge",
     "update_ctf",
+    "get_challenge_by_name",
+    "get_ctf_by_name",
     # guards
     "challenges_exists",
     "config_exists",
     "ctfs_exists",
+    "plugins_exists",
     # remote
     "add_remote_ctf",
     "normalise_category",
@@ -93,6 +120,7 @@ __all__ = [
     "prompt_category_selection",
     "prompt_challenge_selection",
     "prompt_ctf_selection",
+    "prompt_plugin_selection",
     "prompt_tags_selection",
     "prompt_text",
     "show_challenge",
@@ -101,4 +129,15 @@ __all__ = [
     "warn",
     "info",
     "command",
+    "show_plugin",
+    # plugin
+    "get_plugins_directory",
+    "get_templates_directory",
+    "load_template_content",
+    "get_plugin_selection",
+    "set_selected_plugin_for_category",
+    "get_selected_plugin_for_category",
+    "remove_selected_plugin_for_category",
+    "save_plugin_selection",
+    "create_plugin_file",
 ]

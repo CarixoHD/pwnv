@@ -1,11 +1,13 @@
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich import print
 
-from pwnv.cli.utils import (
+from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
+from pwnv.utils import (
     command,
     config_exists,
     get_config_path,
@@ -21,17 +23,29 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 @config_exists()
-def reset() -> None:
-    print("[red]" + "-" * 40 + " WARNING! " + "-" * 40 + "[/]")
-    if not prompt_confirm(
-        "This will delete the entire environment (config + files). Continue?",
-        default=False,
-    ):
-        warn("Aborting reset.")
-        return
+def reset(
+    force: Annotated[
+        bool, typer.Option(help="Force reset without confirmation")
+    ] = False,
+) -> None:
+    """
+    Resets the pwnv environment by removing all CTFs and configuration files,
+    with an option to create a backup.
+    """
     ctfs_path = get_ctfs_path()
     cfg_path = get_config_path()
-    if prompt_confirm(
+
+    if not force:
+        print("[red]" + "-" * 40 + " WARNING! " + "-" * 40 + "[/]")
+        if not prompt_confirm(
+            f"This will delete all CTFs and config at:\n{ctfs_path}\n{cfg_path.parent}"
+            "\nContinue?",
+            default=False,
+        ):
+            warn("Aborting reset.")
+            return
+
+    if not force and prompt_confirm(
         "Do you want to backup the current environment as a tar.gz file?",
         default=False,
     ):
@@ -52,7 +66,11 @@ def reset() -> None:
                 tmp = Path(tmpdir)
 
                 def ignore_pwnvenv(dir, contents):
-                    return [".pwnvenv"] if ".pwnvenv" in contents else []
+                    return (
+                        [DEFAULT_PWNVENV_FOLDER_NAME]
+                        if DEFAULT_PWNVENV_FOLDER_NAME in contents
+                        else []
+                    )
 
                 shutil.copytree(ctfs_path, tmp / ctfs_path.name, ignore=ignore_pwnvenv)
                 shutil.copy(cfg_path, tmp / cfg_path.name)
@@ -66,17 +84,14 @@ def reset() -> None:
     if ctfs_path.exists():
         shutil.rmtree(ctfs_path)
         success(f"Removed CTF files at {ctfs_path}")
-
     else:
         info("No CTF files found - nothing to remove.")
 
-    if cfg_path.exists():
-        cfg_path.unlink()
-        success(f"Removed config file at {cfg_path}")
-
+    if cfg_path.parent.exists():
+        shutil.rmtree(cfg_path.parent)
+        success(f"Removed {cfg_path.parent} config directory")
     else:
-        info("No config file found - nothing to remove.")
+        info("No config path found - nothing to remove.")
 
     success("Workspace reset complete!")
-
     info(f"Run {command('pwnv init')} to bootstrap a fresh environment.")

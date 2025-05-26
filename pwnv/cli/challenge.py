@@ -2,7 +2,8 @@ from typing import Annotated, List
 
 import typer
 
-from pwnv.cli.utils import (
+from pwnv.models import CTF, Challenge
+from pwnv.utils import (
     add_challenge,
     challenges_exists,
     challenges_for_ctf,
@@ -27,15 +28,21 @@ from pwnv.cli.utils import (
     success,
     warn,
 )
-from pwnv.models import CTF, Challenge
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(
+    no_args_is_help=True,
+    help=(
+        "Manage challenges within your CTFs, including adding, removing, "
+        "and viewing information."
+    ),
+)
 
 
 @app.command()
 @config_exists()
 @ctfs_exists()
 def add(name: str) -> None:
+    """Adds a new challenge to a selected CTF."""
     chosen_ctf: CTF | None = get_current_ctf() or (
         prompt_ctf_selection(get_running_ctfs(), "Select a running CTF:")
         if get_running_ctfs()
@@ -43,7 +50,6 @@ def add(name: str) -> None:
     )
     if not chosen_ctf:
         warn("No running CTFs found.")
-
         return
 
     category = prompt_category_selection()
@@ -69,6 +75,7 @@ def add(name: str) -> None:
 @config_exists()
 @challenges_exists()
 def remove() -> None:
+    """Removes an existing challenge from a CTF."""
     challenges: List[Challenge] = (
         challenges_for_ctf(get_current_ctf()) if get_current_ctf() else get_challenges()
     )
@@ -82,16 +89,18 @@ def remove() -> None:
     success(f"[cyan]{challenge.name}[/] removed")
 
 
-@app.command()
+@app.command(name="info")
 @config_exists()
 @challenges_exists()
-def info(
+def info_(
     all: Annotated[bool, typer.Option(help="Show challenges from all CTFs")] = False,
 ) -> None:
+    """Displays detailed information about a selected challenge."""
     current = get_current_challenge()
     if current:
         show_challenge(current)
         return
+
     challenges = (
         get_challenges()
         if all
@@ -118,6 +127,7 @@ def info(
 @config_exists()
 @challenges_exists()
 def filter_() -> None:
+    """Filters and displays solved challenges based on selected tags."""
     solved = get_solved_challenges()
     if not solved:
         warn("No solved challenges found.")
@@ -128,7 +138,6 @@ def filter_() -> None:
         subset = [ch for ch in solved if ch.tags and any(t in ch.tags for t in tags)]
         if not subset:
             warn("No challenges match your tags.")
-
         else:
             show_challenge(prompt_challenge_selection(subset, "Select a challenge:"))
         if not prompt_confirm("Filter again?", default=False):

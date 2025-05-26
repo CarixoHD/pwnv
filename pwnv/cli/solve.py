@@ -2,7 +2,8 @@ import asyncio
 
 import typer
 
-from pwnv.cli.utils import (
+from pwnv.models.challenge import Solved
+from pwnv.utils import (
     add_tags,
     challenges_exists,
     config_exists,
@@ -16,7 +17,6 @@ from pwnv.cli.utils import (
     update_challenge,
     warn,
 )
-from pwnv.models.challenge import Solved
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -25,6 +25,10 @@ app = typer.Typer(no_args_is_help=True)
 @config_exists()
 @challenges_exists()
 def solve(flag: str = "") -> None:
+    """
+    Marks a challenge as solved,
+    optionally submitting the flag to a remote CTF and adding tags.
+    """
     unsolved = get_unsolved_challenges()
     if not unsolved:
         warn("No unsolved challenges found.")

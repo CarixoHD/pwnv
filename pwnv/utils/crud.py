@@ -1,10 +1,10 @@
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
-from pwnv.cli.utils.config import load_config, save_config
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Solved
+from pwnv.utils.config import load_config, save_config
 
 
 # -- [CRUD] --
@@ -49,7 +49,7 @@ def get_ctf_by_challenge(ch: Challenge) -> CTF | None:
     return None
 
 
-def get_tags() -> set[str]:
+def get_tags() -> Set[str]:
     return set(load_config().get("challenge_tags", []))
 
 
@@ -67,6 +67,20 @@ def get_current_challenge(path: Path = Path.cwd()) -> Challenge | None:
     return None
 
 
+def get_challenge_by_name(name: str) -> Challenge | None:
+    for ch in get_challenges():
+        if ch.name == name:
+            return ch
+    return None
+
+
+def get_ctf_by_name(name: str) -> CTF | None:
+    for ctf in get_ctfs():
+        if ctf.name == name:
+            return ctf
+    return None
+
+
 # [CREATE]
 def add_ctf(ctf: CTF) -> None:
     cfg = load_config()
@@ -76,7 +90,7 @@ def add_ctf(ctf: CTF) -> None:
 
 
 def add_challenge(ch: Challenge) -> None:
-    from pwnv.setup import Core
+    from pwnv.core.setup import Core
 
     cfg = load_config()
     cfg.setdefault("challenges", []).append(ch.model_dump())

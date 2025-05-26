@@ -5,9 +5,9 @@ import re
 
 from dotenv import load_dotenv
 
-from pwnv.cli.utils.ui import error, prompt_text, success, warn
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category
+from pwnv.utils.ui import error, prompt_text, success, warn
 
 _keyword_map = {
     "pwn": Category.pwn,
@@ -71,7 +71,7 @@ def _run_async(coro):
 
 
 def add_remote_ctf(ctf: CTF) -> None:
-    from pwnv.cli.utils.crud import add_ctf, remove_ctf
+    from pwnv.utils.crud import add_ctf, remove_ctf
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
     if client is None:
@@ -136,8 +136,8 @@ async def get_remote_challenges(client, ctf):
 
 
 async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
-    from pwnv.cli.utils.crud import add_challenge
     from pwnv.models.challenge import Solved
+    from pwnv.utils.crud import add_challenge
 
     for ch in challenges:
         category = normalise_category(ch.category)

@@ -1,3 +1,3 @@
-from pwnv.plugins.pwn import PwnPlugin
+from pwnv.plugins.plugin import ChallengePlugin
 
-__all__ = ["PwnPlugin"]
+__all__ = ["ChallengePlugin"]

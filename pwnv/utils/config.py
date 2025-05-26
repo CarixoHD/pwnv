@@ -7,28 +7,26 @@ from tempfile import NamedTemporaryFile
 from dotenv import load_dotenv
 from filelock import SoftFileLock
 
-load_dotenv()
+from pwnv.constants import DEFAULT_CONFIG_BASENAME, PWNV_CONFIG_ENV, PWNV_DEBUG_ENV
 
-_CONFIG_ENV: str = "PWNV_CONFIG"
-_DEBUG_ENV: str = "PWNV_DEBUG"
-_DEFAULT_BASENAME = "config.json"
+load_dotenv()
 
 
 def _resolve_config_path() -> Path:
     import typer
 
-    if override := os.getenv(_CONFIG_ENV):
+    if override := os.getenv(PWNV_CONFIG_ENV):
         return Path(override).expanduser().resolve()
 
-    if os.getenv(_DEBUG_ENV):
-        return Path("/tmp/pwnv") / _DEFAULT_BASENAME
+    if os.getenv(PWNV_DEBUG_ENV):
+        return Path("/tmp/pwnv") / DEFAULT_CONFIG_BASENAME
 
     for parent in (Path.cwd(), *Path.cwd().parents):
-        candidate = parent / _DEFAULT_BASENAME
+        candidate = parent / DEFAULT_CONFIG_BASENAME
         if candidate.is_file():
             return candidate
 
-    return Path(typer.get_app_dir("pwnv")) / _DEFAULT_BASENAME
+    return Path(typer.get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
 
 
 config_path: Path = _resolve_config_path()
@@ -72,3 +70,14 @@ def get_config_path() -> Path:
 def get_ctfs_path() -> Path:
     config = load_config()
     return Path(config["ctfs_path"])
+
+
+def get_config_value(key: str) -> any:
+    config = load_config()
+    return config.get(key)
+
+
+def set_config_value(key: str, value: any) -> None:
+    config = load_config()
+    config[key] = value
+    save_config(config)
