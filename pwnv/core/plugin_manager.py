@@ -47,7 +47,8 @@ class PluginManager:
                     self._import_plugin_module(py_file)
         else:
             info(
-                f"Plugins directory not found: {self._plugins_root}.No plugins to load."
+                f"Plugins directory not found: {self._plugins_root}. "
+                "No plugins to load."
             )
         self._loaded = True
 
