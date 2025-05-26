@@ -51,3 +51,7 @@ include-package-data = true
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "no-local-version"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["plugin_examples*"]
