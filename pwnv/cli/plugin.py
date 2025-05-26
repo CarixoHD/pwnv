@@ -60,7 +60,6 @@ def add(name: str) -> None:
     user_tpl = templates_dir / template_name
     if not user_tpl.exists():
         user_tpl.touch()
-        info(f"Created empty template file: {user_tpl}")
 
     create_plugin_file(plugin_file, name, category, template_name)
     set_selected_plugin_for_category(category, name)
