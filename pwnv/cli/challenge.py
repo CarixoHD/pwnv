@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import List
 
 import typer
 
@@ -97,7 +97,9 @@ def remove() -> None:
 @config_exists()
 @challenges_exists()
 def info_(
-    all: Annotated[bool, typer.Option(help="Show challenges from all CTFs")] = False,
+    all: bool = typer.Option(
+        False, "--all", "-a", help="Show challenges from all CTFs"
+    ),
 ) -> None:
     """Displays detailed information about a selected challenge."""
     from pwnv.utils import (

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Annotated, Optional
 
 import typer
 
@@ -16,12 +15,18 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def init(
-    ctfs_folder: Annotated[
-        Optional[Path], typer.Option(help="Directory that will store all CTFs")
-    ] = Path.cwd() / DEFAULT_CTFS_FOLDER_NAME,
-    no_install: Annotated[
-        bool, typer.Option(help="Skip installation of default packages")
-    ] = False,
+    no_install: bool = typer.Option(
+        False,
+        "--no-install",
+        "-n",
+        help="Do not install default packages in the virtual environment",
+    ),
+    ctfs_folder: Path = typer.Option(
+        Path.cwd() / DEFAULT_CTFS_FOLDER_NAME,
+        "--ctfs-folder",
+        "-f",
+        help="Directory that will store all CTFs",
+    ),
 ) -> None:
     """
     Initializes a new pwnv environment, setting up the necessary directories and

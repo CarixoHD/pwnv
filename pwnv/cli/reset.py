@@ -1,7 +1,6 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Annotated
 
 import typer
 
@@ -23,9 +22,9 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 @config_exists()
 def reset(
-    force: Annotated[
-        bool, typer.Option(help="Force reset without confirmation")
-    ] = False,
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Force reset without confirmation"
+    ),
 ) -> None:
     """
     Resets the pwnv environment by removing all CTFs and configuration files,
