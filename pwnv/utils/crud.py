@@ -1,19 +1,21 @@
-import shutil
 from pathlib import Path
 from typing import List, Set
 
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Solved
-from pwnv.utils.config import load_config, save_config
 
 
 # -- [CRUD] --
 # [READ]
 def get_ctfs() -> List[CTF]:
+    from pwnv.utils.config import load_config
+
     return [CTF(**ctf) for ctf in load_config().get("ctfs", [])]
 
 
 def get_challenges() -> List[Challenge]:
+    from pwnv.utils.config import load_config
+
     return [Challenge(**ch) for ch in load_config().get("challenges", [])]
 
 
@@ -50,6 +52,8 @@ def get_ctf_by_challenge(ch: Challenge) -> CTF | None:
 
 
 def get_tags() -> Set[str]:
+    from pwnv.utils.config import load_config
+
     return set(load_config().get("challenge_tags", []))
 
 
@@ -83,6 +87,8 @@ def get_ctf_by_name(name: str) -> CTF | None:
 
 # [CREATE]
 def add_ctf(ctf: CTF) -> None:
+    from pwnv.utils.config import load_config, save_config
+
     cfg = load_config()
     cfg.setdefault("ctfs", []).append(ctf.model_dump())
     save_config(cfg)
@@ -91,6 +97,7 @@ def add_ctf(ctf: CTF) -> None:
 
 def add_challenge(ch: Challenge) -> None:
     from pwnv.core.setup import Core
+    from pwnv.utils.config import load_config, save_config
 
     cfg = load_config()
     cfg.setdefault("challenges", []).append(ch.model_dump())
@@ -100,6 +107,8 @@ def add_challenge(ch: Challenge) -> None:
 
 
 def add_tags(tags: set[str]) -> None:
+    from pwnv.utils.config import load_config, save_config
+
     cfg = load_config()
     cfg["challenge_tags"] = list(
         set(cfg.get("challenge_tags", [])) | {t.lower() for t in tags}
@@ -109,6 +118,8 @@ def add_tags(tags: set[str]) -> None:
 
 # [UPDATE]
 def update_ctf(ctf: CTF) -> None:
+    from pwnv.utils.config import load_config, save_config
+
     cfg = load_config()
     ctfs = cfg.setdefault("ctfs", [])
     for idx, c in enumerate(ctfs):
@@ -119,6 +130,8 @@ def update_ctf(ctf: CTF) -> None:
 
 
 def update_challenge(ch: Challenge) -> None:
+    from pwnv.utils.config import load_config, save_config
+
     cfg = load_config()
     challenges = cfg.setdefault("challenges", [])
     for idx, item in enumerate(challenges):
@@ -130,6 +143,10 @@ def update_challenge(ch: Challenge) -> None:
 
 # [DELETE]
 def remove_ctf(ctf: CTF) -> None:
+    import shutil
+
+    from pwnv.utils.config import load_config, save_config
+
     cfg = load_config()
     cfg["ctfs"] = [c for c in cfg.get("ctfs", []) if c["id"] != str(ctf.id)]
     cfg["challenges"] = [
@@ -141,6 +158,10 @@ def remove_ctf(ctf: CTF) -> None:
 
 
 def remove_challenge(ch: Challenge) -> None:
+    import shutil
+
+    from pwnv.utils.config import load_config, save_config
+
     cfg = load_config()
     cfg["challenges"] = [
         item for item in cfg.get("challenges", []) if item["id"] != str(ch.id)

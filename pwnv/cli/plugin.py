@@ -1,27 +1,8 @@
-import re
-
 import typer
 
-from pwnv.constants import DEFAULT_TEMPLATE_FILENAME
-from pwnv.core import plugin_manager
 from pwnv.utils import (
     config_exists,
-    create_plugin_file,
-    error,
-    get_plugin_selection,
-    get_plugins_directory,
-    get_templates_directory,
-    info,
     plugins_exists,
-    prompt_category_selection,
-    prompt_confirm,
-    prompt_plugin_selection,
-    prompt_text,
-    save_plugin_selection,
-    set_selected_plugin_for_category,
-    show_plugin,
-    success,
-    warn,
 )
 
 app = typer.Typer(
@@ -36,6 +17,21 @@ def add(name: str) -> None:
     Creates a new plugin file and its associated template for a specific category.
     Use 'pwnv plugin select' to activate it.
     """
+    import re
+
+    from pwnv.constants import DEFAULT_TEMPLATE_FILENAME
+    from pwnv.utils import (
+        create_plugin_file,
+        error,
+        get_plugins_directory,
+        get_templates_directory,
+        info,
+        prompt_category_selection,
+        prompt_text,
+        set_selected_plugin_for_category,
+        success,
+    )
+
     if not re.fullmatch(r"[a-zA-Z0-9]+", name) or not name.isidentifier():
         error(
             f"Invalid plugin name '{name}'."
@@ -76,6 +72,19 @@ def remove() -> None:
     """
     Removes a selected plugin file and updates the plugin selection accordingly.
     """
+    from pwnv.core import plugin_manager
+    from pwnv.utils import (
+        error,
+        get_plugin_selection,
+        get_plugins_directory,
+        info,
+        prompt_confirm,
+        prompt_plugin_selection,
+        save_plugin_selection,
+        success,
+        warn,
+    )
+
     plugins = plugin_manager.get_all_plugins()
     if not plugins:
         warn("No plugins to remove.")
@@ -135,6 +144,14 @@ def info_() -> None:
     Lists all available plugins and displays detailed information,
       including source code, for a selected plugin.
     """
+    from pwnv.core import plugin_manager
+    from pwnv.utils import (
+        prompt_confirm,
+        prompt_plugin_selection,
+        show_plugin,
+        warn,
+    )
+
     plugins = plugin_manager.get_all_plugins()
     if not plugins:
         warn("No plugins found or loaded. Use 'pwnv plugin add' to create one.")
@@ -157,6 +174,15 @@ def select() -> None:
     """
     Selects the active plugin to be used for a chosen challenge category.
     """
+    from pwnv.core import plugin_manager
+    from pwnv.utils import (
+        error,
+        prompt_category_selection,
+        prompt_plugin_selection,
+        set_selected_plugin_for_category,
+        success,
+    )
+
     category = prompt_category_selection()
     plugins_for_cat = plugin_manager.get_plugins_by_category(category)
 

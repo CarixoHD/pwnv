@@ -1,13 +1,7 @@
 import asyncio
-import atexit
-import os
-import re
-
-from dotenv import load_dotenv
 
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category
-from pwnv.utils.ui import error, prompt_text, success, warn
 
 _keyword_map = {
     "pwn": Category.pwn,
@@ -34,6 +28,8 @@ def sanitize(name: str) -> str:
 
 
 def normalise_category(raw: str) -> Category:
+    import re
+
     clean = re.sub(r"\\(.*?\\)", "", raw).strip().lower()
     key = re.split(r"[^a-z]+", clean, maxsplit=1)[0]
     return _keyword_map.get(key, Category.other)
@@ -42,6 +38,8 @@ def normalise_category(raw: str) -> Category:
 def _ask_for_credentials(methods) -> dict:
     from ctfbridge.models.auth import AuthMethod
     from InquirerPy import inquirer
+
+    from pwnv.utils.ui import error, prompt_text
 
     creds = {"username": None, "password": None, "token": None}
     chosen = inquirer.select(
@@ -63,6 +61,9 @@ _runner: asyncio.Runner | None = None
 
 
 def _run_async(coro):
+    import asyncio
+    import atexit
+
     global _runner
     if _runner is None:
         _runner = asyncio.Runner()
@@ -109,6 +110,8 @@ async def get_remote_credential_methods(url: str):
     try:
         client = await create_client(url=url)
     except Exception:
+        from pwnv.utils.ui import error
+
         error("Failed to get client.")
         return None, None
     methods = await client.auth.get_supported_auth_methods()
@@ -121,6 +124,8 @@ async def create_remote_session(client, creds, ctf) -> bool:
         await client.session.save(str(ctf.path / ".session"))
         return True
     except Exception:
+        from pwnv.utils.ui import error
+
         error("Failed to authenticate with the provided credentials.")
         return False
 
@@ -131,13 +136,17 @@ async def get_remote_challenges(client, ctf):
         challenges = await client.challenges.get_all()
         return challenges
     except Exception:
+        from pwnv.utils.ui import error
+
         error("Failed to fetch challenges.")
         return None
 
 
 async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
+    from pwnv.models import Challenge
     from pwnv.models.challenge import Solved
     from pwnv.utils.crud import add_challenge
+    from pwnv.utils.ui import success
 
     for ch in challenges:
         category = normalise_category(ch.category)
@@ -161,19 +170,26 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
         try:
             await client.attachments.download_all(ch.attachments, challenge.path)
         except Exception:
+            from pwnv.utils.ui import warn
+
             warn(f"Skipped attachments for {challenge.name}")
 
         success(f"{challenge.name} ({challenge.points} pts) added")
 
 
 async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> None:
+    import os
+
     from ctfbridge import create_client
+    from dotenv import load_dotenv
 
     client = await create_client(ctf.url)
     if (ctf.path / ".session").exists():
         try:
             await client.session.load(ctf.path / ".session")
         except Exception as e:
+            from pwnv.utils.ui import warn
+
             warn(f"Ignoring broken session cookie ({e}).")
 
     elif (ctf.path / ".env").exists():
@@ -192,10 +208,14 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> None:
     try:
         res = await client.challenges.submit(challenge.extras["slug"], flag)
         if res.correct:
+            from pwnv.utils.ui import success
+
             success(f"Flag [cyan]{flag}[/] accepted!")
 
             return True
         else:
+            from pwnv.utils.ui import error
+
             error(f"Flag [cyan]{flag}[/] incorrect")
             return False
     except Exception:

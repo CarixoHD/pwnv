@@ -17,7 +17,7 @@ DEFAULT_PACKAGES = [
     "angr",
     "spwn",
     "pycryptodome",
-    "z3",
+    "z3-solver",
     "requests",
     "libdebug",
 ]

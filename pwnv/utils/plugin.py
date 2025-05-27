@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Dict
 
@@ -7,16 +6,13 @@ from pwnv.constants import (
     DEFAULT_SELECTION_FILE_NAME,
     DEFAULT_TEMPLATES_FOLDER_NAME,
 )
-from pwnv.core.plugin_manager import plugin_manager
 from pwnv.models.challenge import Category
 from pwnv.plugins import ChallengePlugin
 from pwnv.utils.config import get_config_path
-from pwnv.utils.ui import error
 
 _PWNV_CONFIG_BASE_DIR = get_config_path().parent
 _PLUGINS_ROOT = _PWNV_CONFIG_BASE_DIR / DEFAULT_PLUGINS_FOLDER_NAME
 _TEMPLATES_ROOT = _PWNV_CONFIG_BASE_DIR / DEFAULT_TEMPLATES_FOLDER_NAME
-_SELECTION_FILE = _PLUGINS_ROOT / DEFAULT_SELECTION_FILE_NAME
 
 
 def get_plugins_directory() -> Path:
@@ -40,6 +36,10 @@ def load_template_content(category_name: str, filename: str) -> str:
 
 
 def get_plugin_selection() -> Dict[str, str]:
+    import json
+
+    from pwnv.utils.ui import error
+
     selection_file = get_plugins_directory() / DEFAULT_SELECTION_FILE_NAME
     if not selection_file.is_file():
         return {}
@@ -56,6 +56,8 @@ def get_plugin_selection() -> Dict[str, str]:
 
 
 def save_plugin_selection(selection_data: Dict[str, str]) -> None:
+    import json
+
     selection_file = get_plugins_directory() / DEFAULT_SELECTION_FILE_NAME
     selection_file.parent.mkdir(parents=True, exist_ok=True)
     with open(selection_file, "w", encoding="utf-8") as f:
@@ -69,12 +71,16 @@ def set_selected_plugin_for_category(category: Category, plugin_name: str) -> No
 
 
 def get_selected_plugin_for_category(category: Category) -> ChallengePlugin | None:
+    from pwnv.core.plugin_manager import plugin_manager
+
     selection = get_plugin_selection()
     plugin_name = selection.get(category.name, None)
     return plugin_manager.get_plugin_by_name(plugin_name)
 
 
 def remove_selected_plugin_for_category(category: Category) -> None:
+    from pwnv.utils.ui import error
+
     selection = get_plugin_selection()
     if category.name in selection:
         del selection[category.name]

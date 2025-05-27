@@ -8,7 +8,6 @@ from pwnv.constants import DEFAULT_PLUGINS_FOLDER_NAME
 from pwnv.models.challenge import Category
 from pwnv.plugins import ChallengePlugin
 from pwnv.utils.config import get_config_path
-from pwnv.utils.ui import error, info
 
 _PWNV_CONFIG_BASE_DIR = get_config_path().parent
 _PLUGINS_ROOT = _PWNV_CONFIG_BASE_DIR / DEFAULT_PLUGINS_FOLDER_NAME
@@ -28,6 +27,8 @@ class PluginManager:
         self._loaded = False
 
     def _import_plugin_module(self, module_path: Path) -> None:
+        from pwnv.utils.ui import error
+
         try:
             spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
             if spec and spec.loader:
@@ -38,6 +39,8 @@ class PluginManager:
             error(f"Failed to load plugin module {module_path.name}: {e}")
 
     def discover_and_load_plugins(self) -> None:
+        from pwnv.utils.ui import info
+
         if self._loaded:
             return
 

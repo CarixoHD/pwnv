@@ -1,19 +1,18 @@
-import json
-import os
 from functools import lru_cache
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 from dotenv import load_dotenv
 from filelock import SoftFileLock
-
-from pwnv.constants import DEFAULT_CONFIG_BASENAME, PWNV_CONFIG_ENV, PWNV_DEBUG_ENV
 
 load_dotenv()
 
 
 def _resolve_config_path() -> Path:
+    import os
+
     import typer
+
+    from pwnv.constants import DEFAULT_CONFIG_BASENAME, PWNV_CONFIG_ENV, PWNV_DEBUG_ENV
 
     if override := os.getenv(PWNV_CONFIG_ENV):
         return Path(override).expanduser().resolve()
@@ -36,6 +35,8 @@ _lock = SoftFileLock(str(config_path) + ".lock")
 
 @lru_cache(maxsize=1)
 def load_config() -> dict:
+    import json
+
     if not config_path.exists():
         return {"ctfs": [], "challenges": [], "challenge_tags": []}
     with open(config_path) as f:
@@ -47,6 +48,10 @@ def _invalidate_cache() -> None:
 
 
 def save_config(cfg: dict) -> None:
+    import json
+    import os
+    from tempfile import NamedTemporaryFile
+
     cfg.setdefault("ctfs", [])
     cfg.setdefault("challenges", [])
     cfg.setdefault("challenge_tags", [])

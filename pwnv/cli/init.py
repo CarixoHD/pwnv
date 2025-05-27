@@ -1,6 +1,3 @@
-import os
-import shutil
-import subprocess
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -12,16 +9,6 @@ from pwnv.constants import (
     DEFAULT_PLUGINS_FOLDER_NAME,
     DEFAULT_PWNVENV_FOLDER_NAME,
     DEFAULT_TEMPLATES_FOLDER_NAME,
-)
-from pwnv.models import Init
-from pwnv.utils import (
-    command,
-    error,
-    get_config_path,
-    info,
-    prompt_confirm,
-    save_config,
-    warn,
 )
 
 app = typer.Typer(no_args_is_help=True)
@@ -40,6 +27,21 @@ def init(
     Initializes a new pwnv environment, setting up the necessary directories and
     virtual environment.
     """
+    import os
+    import shutil
+    import subprocess
+
+    from pwnv.models import Init
+    from pwnv.utils import (
+        command,
+        error,
+        get_config_path,
+        info,
+        prompt_confirm,
+        save_config,
+        warn,
+    )
+
     if not shutil.which("uv"):
         error(f"{command('uv')} binary not found in PATH. Install it first.")
         return

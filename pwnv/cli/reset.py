@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich import print
 
 from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
 from pwnv.utils import (
@@ -32,6 +31,8 @@ def reset(
     Resets the pwnv environment by removing all CTFs and configuration files,
     with an option to create a backup.
     """
+    from rich import print
+
     ctfs_path = get_ctfs_path()
     cfg_path = get_config_path()
 

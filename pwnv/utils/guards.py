@@ -1,7 +1,6 @@
-from functools import wraps
-
-
 def _guard(predicate, msg):
+    from functools import wraps
+
     from pwnv.utils.ui import warn
 
     def deco(fn):

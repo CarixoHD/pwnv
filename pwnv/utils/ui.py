@@ -1,9 +1,6 @@
 from typing import List, Sequence
 
-from rich import print
 from rich.markup import escape
-from rich.panel import Panel
-from rich.syntax import Syntax
 
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category, Solved
@@ -12,18 +9,26 @@ from pwnv.utils.crud import challenges_for_ctf, get_ctfs, get_tags
 
 
 def success(msg: str):
+    from rich import print
+
     print(f"[green]✓[/] {msg}")
 
 
 def error(msg: str):
+    from rich import print
+
     print(f"[red]error:[/] {msg}")
 
 
 def warn(msg: str):
+    from rich import print
+
     print(f"[yellow]warning:[/] {msg}")
 
 
 def info(msg: str):
+    from rich import print
+
     print(f"[blue]info:[/] {msg}")
 
 
@@ -56,7 +61,6 @@ def _get_ctf_choices(ctfs: Sequence[CTF]):
 
 
 def _get_plugin_choices(plugins: Sequence[ChallengePlugin]):
-    """Formats a list of plugins for InquirerPy fuzzy selection."""
     from InquirerPy.base.control import Choice
 
     return [
@@ -106,7 +110,6 @@ def prompt_ctf_selection(ctfs: Sequence[CTF], msg: str) -> CTF:
 def prompt_plugin_selection(
     plugins: Sequence[ChallengePlugin], msg: str, **kwargs
 ) -> ChallengePlugin:
-    """Prompts the user to select a plugin using a fuzzy finder."""
     return prompt_fuzzy_select(
         choices=_get_plugin_choices(plugins),
         message=msg,
@@ -133,6 +136,8 @@ def prompt_text(msg: str, **kwargs) -> str:
 
 
 def show_challenge(challenge: Challenge):
+    from rich import print
+
     print(f"[blue]{escape('[' + challenge.name + ']')}[/]")
     ctf = next(ctf for ctf in get_ctfs() if ctf.id == challenge.ctf_id)
     print(f"[red]ctf[/] = '{ctf.name}'")
@@ -145,6 +150,8 @@ def show_challenge(challenge: Challenge):
 
 
 def show_ctf(ctf: CTF):
+    from rich import print
+
     print(f"[blue]{escape('[' + ctf.name + ']')}[/]")
     print(f"[red]path[/] = '{str(ctf.path)}'")
     print(f"[red]running[/] = '{str(ctf.running.name)}'")
@@ -153,6 +160,10 @@ def show_ctf(ctf: CTF):
 
 
 def show_plugin(plugin: ChallengePlugin):
+    from rich import print
+    from rich.panel import Panel
+    from rich.syntax import Syntax
+
     from pwnv.utils.plugin import get_plugin_selection, get_plugins_directory
 
     plugins_dir = get_plugins_directory()

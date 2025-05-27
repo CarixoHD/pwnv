@@ -3,28 +3,9 @@ from pathlib import Path
 import typer
 
 from pwnv.models import CTF
-from pwnv.models.ctf import Status
 from pwnv.utils import (
-    add_ctf,
-    add_remote_ctf,
     config_exists,
     ctfs_exists,
-    error,
-    get_ctfs,
-    get_ctfs_path,
-    get_current_ctf,
-    get_running_ctfs,
-    get_stopped_ctfs,
-    is_duplicate,
-    prompt_confirm,
-    prompt_ctf_selection,
-    prompt_text,
-    remove_ctf,
-    sanitize,
-    show_ctf,
-    success,
-    update_ctf,
-    warn,
 )
 
 app = typer.Typer(no_args_is_help=True, help="Manage CTFs.")
@@ -34,6 +15,19 @@ app = typer.Typer(no_args_is_help=True, help="Manage CTFs.")
 @config_exists()
 def add(name: str) -> None:
     """Adds a new CTF, either local or remote, to your environment."""
+    from pwnv.utils import (
+        add_ctf,
+        add_remote_ctf,
+        error,
+        get_ctfs,
+        get_ctfs_path,
+        is_duplicate,
+        prompt_confirm,
+        prompt_text,
+        sanitize,
+        success,
+    )
+
     path: Path = (get_ctfs_path() / sanitize(name)).resolve()
     if is_duplicate(path=path, model_list=get_ctfs()):
         error(f"CTF [cyan]{name}[/] already exists.")
@@ -55,6 +49,14 @@ def add(name: str) -> None:
 @ctfs_exists()
 def remove() -> None:
     """Removes an existing CTF and all its associated challenges."""
+    from pwnv.utils import (
+        get_ctfs,
+        prompt_confirm,
+        prompt_ctf_selection,
+        remove_ctf,
+        success,
+    )
+
     chosen_ctf = prompt_ctf_selection(get_ctfs(), "Select a CTF to remove:")
     if not prompt_confirm(
         f"Remove CTF '{chosen_ctf.name}' and all its challenges?",
@@ -70,6 +72,13 @@ def remove() -> None:
 @ctfs_exists()
 def info_() -> None:
     """Displays detailed information about a selected CTF."""
+    from pwnv.utils import (
+        get_ctfs,
+        prompt_confirm,
+        prompt_ctf_selection,
+        show_ctf,
+    )
+
     while True:
         ctfs: list[CTF] = get_ctfs()
         show_ctf(prompt_ctf_selection(ctfs, "Select a CTF to show info:"))
@@ -82,6 +91,16 @@ def info_() -> None:
 @ctfs_exists()
 def stop() -> None:
     """Marks a running CTF as stopped."""
+    from pwnv.models.ctf import Status
+    from pwnv.utils import (
+        get_current_ctf,
+        get_running_ctfs,
+        prompt_ctf_selection,
+        success,
+        update_ctf,
+        warn,
+    )
+
     running: list[CTF] = get_running_ctfs()
     if not running:
         warn("No running CTFs found.")
@@ -102,6 +121,16 @@ def stop() -> None:
 @ctfs_exists()
 def start() -> None:
     """Marks a stopped CTF as running."""
+    from pwnv.models.ctf import Status
+    from pwnv.utils import (
+        get_current_ctf,
+        get_stopped_ctfs,
+        prompt_ctf_selection,
+        success,
+        update_ctf,
+        warn,
+    )
+
     stopped: list[CTF] = get_stopped_ctfs()
     if not stopped:
         warn("No stopped CTFs found.")
