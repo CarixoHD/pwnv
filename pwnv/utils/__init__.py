@@ -47,12 +47,7 @@ from pwnv.utils.plugin import (
     save_plugin_selection,
     set_selected_plugin_for_category,
 )
-from pwnv.utils.remote import (
-    add_remote_ctf,
-    normalise_category,
-    remote_solve,
-    sanitize,
-)
+from pwnv.utils.remote import add_remote_ctf, normalise_category, remote_solve, sanitize
 from pwnv.utils.ui import (
     command,
     error,

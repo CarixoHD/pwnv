@@ -12,6 +12,7 @@ license = {text = "MIT"}
 authors = [
   {name = "Shayan Alinejad", email = "shayan.alinejad@proton.me"}
 ]
+keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf","cli", "tool", "workspace", "management", "automation", "workflow", "challenges"]
 requires-python = ">=3.12"
 dependencies = [
     "ctfbridge>=0.2.1",
