@@ -40,8 +40,6 @@ def normalise_category(raw: str) -> Category:
     return _keyword_map.get(key, Category.other)
 
 
-
-
 def _ask_for_credentials(methods) -> Dict[str, str | None]:
     """Prompt the user for credentials using available authentication methods."""
     from ctfbridge.models.auth import AuthMethod

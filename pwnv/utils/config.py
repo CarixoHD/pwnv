@@ -91,8 +91,6 @@ def get_ctfs_path() -> Path:
     return Path(config["ctfs_path"])
 
 
-
-
 def get_config_value(key: str) -> Any:
     """Return a value from the configuration by ``key``."""
     config = load_config()
