@@ -7,6 +7,7 @@ simple accessor helpers used across the code base.
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from filelock import SoftFileLock
@@ -90,13 +91,13 @@ def get_ctfs_path() -> Path:
     return Path(config["ctfs_path"])
 
 
-def get_config_value(key: str) -> any:
+def get_config_value(key: str) -> Any:
     """Return a value from the configuration by ``key``."""
     config = load_config()
     return config.get(key)
 
 
-def set_config_value(key: str, value: any) -> None:
+def set_config_value(key: str, value: Any) -> None:
     """Set a ``key`` in the configuration and persist it."""
     config = load_config()
     config[key] = value

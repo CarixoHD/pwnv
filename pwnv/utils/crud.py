@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Set
+from typing import List, Sequence, Set
 
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Solved
@@ -176,7 +176,7 @@ def is_duplicate(
     *,
     name: str | None = None,
     path: Path | None = None,
-    model_list: List[CTF | Challenge],
+    model_list: Sequence[CTF | Challenge],
 ) -> bool:
     if path is None:
         return any(model.name == name for model in model_list)

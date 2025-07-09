@@ -80,8 +80,9 @@ def remove() -> None:
         success,
     )
 
+    current_ctf = get_current_ctf()
     challenges: List[Challenge] = (
-        challenges_for_ctf(get_current_ctf()) if get_current_ctf() else get_challenges()
+        challenges_for_ctf(current_ctf) if current_ctf else get_challenges()
     )
     challenge = prompt_challenge_selection(challenges, "Select a challenge to remove:")
 
@@ -120,17 +121,13 @@ def info_(
         show_challenge(current)
         return
 
-    challenges = (
-        get_challenges()
-        if all
-        else (
-            challenges_for_ctf(
-                get_current_ctf()
-                if get_current_ctf()
-                else prompt_ctf_selection(get_ctfs(), "Select a CTF:")
-            )
+    if all:
+        challenges = get_challenges()
+    else:
+        selected_ctf = get_current_ctf() or prompt_ctf_selection(
+            get_ctfs(), "Select a CTF:"
         )
-    )
+        challenges = challenges_for_ctf(selected_ctf)
 
     if not challenges:
         warn("No challenges found.")

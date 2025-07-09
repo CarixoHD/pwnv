@@ -63,7 +63,7 @@ class PluginManager:
     def get_plugins_by_category(self, category: Category) -> List[ChallengePlugin]:
         return [pl for pl in self.get_all_plugins() if pl.category() == category]
 
-    def get_plugin_by_name(self, name: str) -> ChallengePlugin | None:
+    def get_plugin_by_name(self, name: str | None) -> ChallengePlugin | None:
         if not name:
             return None
         self.discover_and_load_plugins()

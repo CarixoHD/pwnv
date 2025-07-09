@@ -74,7 +74,7 @@ def get_selected_plugin_for_category(category: Category) -> ChallengePlugin | No
     from pwnv.core.plugin_manager import plugin_manager
 
     selection = get_plugin_selection()
-    plugin_name = selection.get(category.name, None)
+    plugin_name = selection.get(category.name)
     return plugin_manager.get_plugin_by_name(plugin_name)
 
 
