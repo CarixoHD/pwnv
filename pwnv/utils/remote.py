@@ -177,7 +177,7 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
         success(f"{challenge.name} ({challenge.points} pts) added")
 
 
-async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> None:
+async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
     import os
 
     from ctfbridge import create_client
@@ -202,7 +202,7 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> None:
         await client.auth.login(**creds)
     else:
         creds = _ask_for_credentials(await client.auth.get_supported_auth_methods())
-        if not await create_remote_session(client, creds):
+        if not await create_remote_session(client, creds, ctf):
             return False
 
     try:
