@@ -1,6 +1,7 @@
 """Helpers for interacting with remote CTF platforms via ``ctfbridge``."""
 
 import asyncio
+from typing import Any, Dict, Tuple
 
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category
@@ -39,7 +40,6 @@ def normalise_category(raw: str) -> Category:
     return _keyword_map.get(key, Category.other)
 
 
-from typing import Any, Dict, List, Optional, Tuple
 
 
 def _ask_for_credentials(methods) -> Dict[str, str | None]:
@@ -114,7 +114,9 @@ def add_remote_ctf(ctf: CTF) -> None:
     _run_async(add_remote_challenges(client, ctf, challenges))
 
 
-async def get_remote_credential_methods(url: str | None) -> Tuple[Any, Any] | Tuple[None, None]:
+async def get_remote_credential_methods(
+    url: str | None,
+) -> Tuple[Any, Any] | Tuple[None, None]:
     """Retrieve supported authentication methods from the remote platform."""
     from ctfbridge import create_client
 
@@ -132,7 +134,9 @@ async def get_remote_credential_methods(url: str | None) -> Tuple[Any, Any] | Tu
     return client, methods
 
 
-async def create_remote_session(client: Any, creds: Dict[str, str | None], ctf: CTF) -> bool:
+async def create_remote_session(
+    client: Any, creds: Dict[str, str | None], ctf: CTF
+) -> bool:
     """Create and store an authenticated session."""
     try:
         await client.auth.login(**{k: v for k, v in creds.items() if v is not None})
@@ -227,7 +231,9 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
             return False
 
     try:
-        slug = challenge.extras.get("slug") if isinstance(challenge.extras, dict) else None
+        slug = (
+            challenge.extras.get("slug") if isinstance(challenge.extras, dict) else None
+        )
         if slug is None:
             return False
         res = await client.challenges.submit(slug, flag)

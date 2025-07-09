@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Set, Sequence
+from typing import List, Sequence, Set
 
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Solved

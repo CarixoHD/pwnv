@@ -124,7 +124,10 @@ def info_(
     if all:
         challenges = get_challenges()
     else:
-        selected_ctf = get_current_ctf() or prompt_ctf_selection(get_ctfs(), "Select a CTF:")
+        selected_ctf = (
+            get_current_ctf()
+            or prompt_ctf_selection(get_ctfs(), "Select a CTF:")
+        )
         challenges = challenges_for_ctf(selected_ctf)
 
     if not challenges:
