@@ -112,6 +112,64 @@ def add_remote_ctf(ctf: CTF) -> None:
     _run_async(add_remote_challenges(client, ctf, challenges))
 
 
+def sync_remote_ctf(ctf: CTF) -> None:
+    """Fetch new challenges for ``ctf`` from its remote platform."""
+    from dotenv import load_dotenv
+
+    from pwnv.utils.crud import challenges_for_ctf
+    from pwnv.utils.ui import info, warn
+
+    if not ctf.url:
+        warn("CTF has no remote URL configured.")
+        return
+
+    client, methods = _run_async(get_remote_credential_methods(ctf.url))
+    if client is None or methods is None:
+        return
+
+    creds: Dict[str, str | None] = {}
+    if (ctf.path / ".session").exists():
+        try:
+            _run_async(client.session.load(str(ctf.path / ".session")))
+        except Exception as e:
+            warn(f"Ignoring broken session cookie ({e}).")
+            creds = _ask_for_credentials(methods)
+            if not creds:
+                return
+            if not _run_async(create_remote_session(client, creds, ctf)):
+                return
+    elif (ctf.path / ".env").exists():
+        import os
+
+        load_dotenv(ctf.path / ".env")
+        creds = {
+            "username": os.getenv("CTF_USERNAME"),
+            "password": os.getenv("CTF_PASSWORD"),
+            "token": os.getenv("CTF_TOKEN"),
+        }
+        if not _run_async(create_remote_session(client, creds, ctf)):
+            return
+    else:
+        creds = _ask_for_credentials(methods)
+        if not creds:
+            return
+        if not _run_async(create_remote_session(client, creds, ctf)):
+            return
+
+    challenges = _run_async(get_remote_challenges(client, ctf))
+    if challenges is None:
+        return
+
+    existing = {sanitize(ch.name) for ch in challenges_for_ctf(ctf)}
+    new_challenges = [ch for ch in challenges if sanitize(ch.name) not in existing]
+
+    if not new_challenges:
+        info("No new challenges found.")
+        return
+
+    _run_async(add_remote_challenges(client, ctf, new_challenges))
+
+
 async def get_remote_credential_methods(
     url: str | None,
 ) -> Tuple[Any, Any] | Tuple[None, None]:

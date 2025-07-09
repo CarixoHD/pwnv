@@ -144,3 +144,33 @@ def start() -> None:
     chosen_ctf.running = Status.running
     update_ctf(chosen_ctf)
     success(f"CTF [cyan]{chosen_ctf.name}[/] started.")
+
+
+@app.command()
+@config_exists()
+@ctfs_exists()
+def sync() -> None:
+    """Synchronizes challenges for a remote CTF."""
+    from pwnv.utils import (
+        get_ctfs,
+        get_current_ctf,
+        prompt_ctf_selection,
+        success,
+        sync_remote_ctf,
+        warn,
+    )
+
+    ctfs = get_ctfs()
+    if not ctfs:
+        warn("No CTFs found.")
+        return
+
+    chosen_ctf = get_current_ctf() or prompt_ctf_selection(
+        ctfs, "Select a CTF to sync:"
+    )
+    if not chosen_ctf.url:
+        warn("Selected CTF has no remote URL.")
+        return
+
+    sync_remote_ctf(chosen_ctf)
+    success(f"CTF [cyan]{chosen_ctf.name}[/] synced.")

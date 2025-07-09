@@ -178,6 +178,7 @@ The following table summarizes the available commands. For detailed usage, appen
 | `pwnv ctf add <name>` | Adds a new CTF event (local or remote). |
 | `pwnv ctf remove` | Deletes a CTF event and its challenges. |
 | `pwnv ctf info` | Displays metadata for a selected CTF. |
+| `pwnv ctf sync` | Fetches new challenges from a remote CTF. |
 | `pwnv ctf start` | Sets a CTF's status to 'running'. |
 | `pwnv ctf stop` | Sets a CTF's status to 'stopped'. |
 | | |
