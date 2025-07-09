@@ -219,5 +219,7 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
             error(f"Flag [cyan]{flag}[/] incorrect")
             return False
     except Exception:
+        from pwnv.utils.ui import error
+
         error(f"Failed to submit flag '{flag}'.")
         return False
