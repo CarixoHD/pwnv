@@ -50,7 +50,7 @@ def solve(flag: str = "") -> None:
         challenge.flag = flag
 
     ctf = get_ctf_by_challenge(challenge)
-    if (ctf.path / ".env").exists():
+    if ctf and (ctf.path / ".env").exists():
         if not asyncio.run(remote_solve(challenge=challenge, ctf=ctf, flag=flag)):
             return
     raw = prompt_text("Enter tags (comma-separated):")

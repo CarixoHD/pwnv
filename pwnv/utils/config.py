@@ -90,13 +90,16 @@ def get_ctfs_path() -> Path:
     return Path(config["ctfs_path"])
 
 
-def get_config_value(key: str) -> any:
+from typing import Any
+
+
+def get_config_value(key: str) -> Any:
     """Return a value from the configuration by ``key``."""
     config = load_config()
     return config.get(key)
 
 
-def set_config_value(key: str, value: any) -> None:
+def set_config_value(key: str, value: Any) -> None:
     """Set a ``key`` in the configuration and persist it."""
     config = load_config()
     config[key] = value

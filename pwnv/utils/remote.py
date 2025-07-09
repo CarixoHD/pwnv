@@ -39,14 +39,17 @@ def normalise_category(raw: str) -> Category:
     return _keyword_map.get(key, Category.other)
 
 
-def _ask_for_credentials(methods) -> dict:
+from typing import Any, Dict, List, Optional, Tuple
+
+
+def _ask_for_credentials(methods) -> Dict[str, str | None]:
     """Prompt the user for credentials using available authentication methods."""
     from ctfbridge.models.auth import AuthMethod
     from InquirerPy import inquirer
 
     from pwnv.utils.ui import error, prompt_text
 
-    creds = {"username": None, "password": None, "token": None}
+    creds: Dict[str, str | None] = {"username": None, "password": None, "token": None}
     chosen = inquirer.select(
         message="Choose authentication method:",
         choices=[method.name for method in methods],
@@ -82,7 +85,7 @@ def add_remote_ctf(ctf: CTF) -> None:
     from pwnv.utils.crud import add_ctf, remove_ctf
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
-    if client is None:
+    if client is None or methods is None:
         return
     creds = _ask_for_credentials(methods)
     if not creds:
@@ -111,12 +114,15 @@ def add_remote_ctf(ctf: CTF) -> None:
     _run_async(add_remote_challenges(client, ctf, challenges))
 
 
-async def get_remote_credential_methods(url: str):
+async def get_remote_credential_methods(url: str | None) -> Tuple[Any, Any] | Tuple[None, None]:
     """Retrieve supported authentication methods from the remote platform."""
     from ctfbridge import create_client
 
+    if not url:
+        return None, None
+
     try:
-        client = await create_client(url=url)
+        client: Any = await create_client(url=url)
     except Exception:
         from pwnv.utils.ui import error
 
@@ -126,10 +132,10 @@ async def get_remote_credential_methods(url: str):
     return client, methods
 
 
-async def create_remote_session(client, creds, ctf) -> bool:
+async def create_remote_session(client: Any, creds: Dict[str, str | None], ctf: CTF) -> bool:
     """Create and store an authenticated session."""
     try:
-        await client.auth.login(**creds)
+        await client.auth.login(**{k: v for k, v in creds.items() if v is not None})
         await client.session.save(str(ctf.path / ".session"))
         return True
     except Exception:
@@ -139,10 +145,10 @@ async def create_remote_session(client, creds, ctf) -> bool:
         return False
 
 
-async def get_remote_challenges(client, ctf):
+async def get_remote_challenges(client: Any, ctf: CTF):
     """Fetch the list of challenges for ``ctf`` from the remote platform."""
     try:
-        await client.session.load(ctf.path / ".session")
+        await client.session.load(str(ctf.path / ".session"))
         challenges = await client.challenges.get_all()
         return challenges
     except Exception:
@@ -195,10 +201,13 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
     from ctfbridge import create_client
     from dotenv import load_dotenv
 
-    client = await create_client(ctf.url)
+    if not ctf.url:
+        return False
+
+    client: Any = await create_client(ctf.url)
     if (ctf.path / ".session").exists():
         try:
-            await client.session.load(ctf.path / ".session")
+            await client.session.load(str(ctf.path / ".session"))
         except Exception as e:
             from pwnv.utils.ui import warn
 
@@ -211,14 +220,17 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
             "password": os.getenv("CTF_PASSWORD"),
             "token": os.getenv("CTF_TOKEN"),
         }
-        await client.auth.login(**creds)
+        await client.auth.login(**{k: v for k, v in creds.items() if v is not None})
     else:
         creds = _ask_for_credentials(await client.auth.get_supported_auth_methods())
         if not await create_remote_session(client, creds, ctf):
             return False
 
     try:
-        res = await client.challenges.submit(challenge.extras["slug"], flag)
+        slug = challenge.extras.get("slug") if isinstance(challenge.extras, dict) else None
+        if slug is None:
+            return False
+        res = await client.challenges.submit(slug, flag)
         if res.correct:
             from pwnv.utils.ui import success
 
