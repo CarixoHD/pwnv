@@ -1,3 +1,5 @@
+"""Helpers for interacting with remote CTF platforms via ``ctfbridge``."""
+
 import asyncio
 
 from pwnv.models import CTF, Challenge
@@ -24,10 +26,12 @@ _keyword_map = {
 
 
 def sanitize(name: str) -> str:
+    """Return a filesystem friendly version of ``name``."""
     return name.strip().replace(" ", "-").replace("..", ".").replace("/", "_").lower()
 
 
 def normalise_category(raw: str) -> Category:
+    """Best effort mapping from a textual category to :class:`Category`."""
     import re
 
     clean = re.sub(r"\\(.*?\\)", "", raw).strip().lower()
@@ -36,6 +40,7 @@ def normalise_category(raw: str) -> Category:
 
 
 def _ask_for_credentials(methods) -> dict:
+    """Prompt the user for credentials using available authentication methods."""
     from ctfbridge.models.auth import AuthMethod
     from InquirerPy import inquirer
 
@@ -61,6 +66,7 @@ _runner: asyncio.Runner | None = None
 
 
 def _run_async(coro):
+    """Run ``coro`` in a persistent asyncio runner."""
     import asyncio
     import atexit
 
@@ -72,6 +78,7 @@ def _run_async(coro):
 
 
 def add_remote_ctf(ctf: CTF) -> None:
+    """Interactively add ``ctf`` by fetching its challenges remotely."""
     from pwnv.utils.crud import add_ctf, remove_ctf
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
@@ -105,6 +112,7 @@ def add_remote_ctf(ctf: CTF) -> None:
 
 
 async def get_remote_credential_methods(url: str):
+    """Retrieve supported authentication methods from the remote platform."""
     from ctfbridge import create_client
 
     try:
@@ -119,6 +127,7 @@ async def get_remote_credential_methods(url: str):
 
 
 async def create_remote_session(client, creds, ctf) -> bool:
+    """Create and store an authenticated session."""
     try:
         await client.auth.login(**creds)
         await client.session.save(str(ctf.path / ".session"))
@@ -131,6 +140,7 @@ async def create_remote_session(client, creds, ctf) -> bool:
 
 
 async def get_remote_challenges(client, ctf):
+    """Fetch the list of challenges for ``ctf`` from the remote platform."""
     try:
         await client.session.load(ctf.path / ".session")
         challenges = await client.challenges.get_all()
@@ -143,6 +153,7 @@ async def get_remote_challenges(client, ctf):
 
 
 async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
+    """Persist fetched challenges locally and download attachments."""
     from pwnv.models import Challenge
     from pwnv.models.challenge import Solved
     from pwnv.utils.crud import add_challenge
@@ -178,6 +189,7 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
 
 
 async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
+    """Submit ``flag`` to the remote platform and return ``True`` if correct."""
     import os
 
     from ctfbridge import create_client
