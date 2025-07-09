@@ -1,3 +1,10 @@
+"""Utilities for loading and storing the ``pwnv`` configuration.
+
+The configuration is stored as JSON on disk.  This module resolves the
+location of that file, exposes helpers to read and write it and provides
+simple accessor helpers used across the code base.
+"""
+
 from functools import lru_cache
 from pathlib import Path
 
@@ -8,6 +15,7 @@ load_dotenv()
 
 
 def _resolve_config_path() -> Path:
+    """Return the path of the configuration file."""
     import os
 
     import typer
@@ -35,6 +43,7 @@ _lock = SoftFileLock(str(config_path) + ".lock")
 
 @lru_cache(maxsize=1)
 def load_config() -> dict:
+    """Load and return the JSON configuration as a dictionary."""
     import json
 
     if not config_path.exists():
@@ -44,10 +53,12 @@ def load_config() -> dict:
 
 
 def _invalidate_cache() -> None:
+    """Clear the cached configuration."""
     load_config.cache_clear()
 
 
 def save_config(cfg: dict) -> None:
+    """Write ``cfg`` to disk atomically and invalidate the cache."""
     import json
     import os
     from tempfile import NamedTemporaryFile
@@ -69,20 +80,24 @@ def save_config(cfg: dict) -> None:
 
 
 def get_config_path() -> Path:
+    """Return the resolved configuration path."""
     return config_path
 
 
 def get_ctfs_path() -> Path:
+    """Return the path on disk where CTFs are stored."""
     config = load_config()
     return Path(config["ctfs_path"])
 
 
 def get_config_value(key: str) -> any:
+    """Return a value from the configuration by ``key``."""
     config = load_config()
     return config.get(key)
 
 
 def set_config_value(key: str, value: any) -> None:
+    """Set a ``key`` in the configuration and persist it."""
     config = load_config()
     config[key] = value
     save_config(config)

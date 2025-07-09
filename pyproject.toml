@@ -29,6 +29,7 @@ dev = [
   "mypy",
   "ruff",
   "pre-commit",
+  "pytest",
 ]
 
 [project.urls]
@@ -56,3 +57,7 @@ local_scheme = "no-local-version"
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["plugin_examples*"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
