@@ -1,6 +1,7 @@
 """Helpers for interacting with remote CTF platforms via ``ctfbridge``."""
 
 import asyncio
+from slugify import slugify
 from typing import Any, Dict, Tuple
 
 from pwnv.models import CTF, Challenge
@@ -28,7 +29,7 @@ _keyword_map = {
 
 def sanitize(name: str) -> str:
     """Return a filesystem friendly version of ``name``."""
-    return name.strip().replace(" ", "-").replace("..", ".").replace("/", "_").lower()
+    return slugify(name)
 
 
 def normalise_category(raw: str) -> Category:
