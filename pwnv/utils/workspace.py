@@ -6,11 +6,12 @@ from pathlib import Path
 
 from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
 from pwnv.models import Init
-from pwnv.utils.config import get_config_path, get_ctfs_path, load_config, save_config
 
 
 def backup_workspace(destination: Path) -> Path:
     """Create a complete ``tar.gz`` backup and return its final path."""
+    from pwnv.utils.config import get_config_path, get_ctfs_path
+
     destination = destination.expanduser().resolve()
     if not str(destination).endswith(".tar.gz"):
         destination = destination.with_name(destination.name + ".tar.gz")
@@ -21,6 +22,8 @@ def backup_workspace(destination: Path) -> Path:
     with tarfile.open(destination, "w:gz") as archive:
         archive.add(config_path, arcname=f"config/{config_path.name}")
         for path in ctfs_path.rglob("*"):
+            if path.resolve() == destination:
+                continue
             if DEFAULT_PWNVENV_FOLDER_NAME in path.parts:
                 continue
             archive.add(
@@ -33,18 +36,30 @@ def backup_workspace(destination: Path) -> Path:
 
 def export_workspace(destination: Path) -> Path:
     """Export portable workspace metadata without challenge files or secrets."""
+    import copy
+
+    from pwnv.utils.config import load_config
+
     destination = destination.expanduser().resolve()
     if destination.suffix.lower() != ".json":
         destination = destination.with_suffix(".json")
     destination.parent.mkdir(parents=True, exist_ok=True)
+    exported = copy.deepcopy(load_config())
+    for challenge in exported.get("challenges", []):
+        challenge["flag"] = None
+        extras = challenge.get("extras")
+        if isinstance(extras, dict):
+            extras.pop("flag_history", None)
     destination.write_text(
-        json.dumps(load_config(), indent=4, default=str), encoding="utf-8"
+        json.dumps(exported, indent=4, default=str), encoding="utf-8"
     )
     return destination
 
 
 def import_workspace(source: Path) -> None:
     """Import metadata, rebasing all workspace paths to the current CTF root."""
+    from pwnv.utils.config import get_ctfs_path, save_config
+
     data = json.loads(source.expanduser().resolve().read_text(encoding="utf-8"))
     imported = Init.model_validate(data)
     ctfs_path = get_ctfs_path().resolve()

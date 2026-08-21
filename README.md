@@ -79,7 +79,7 @@ pip install --editable .
 
 -----
 
-## 🧰 Devcontainer (Zed)
+## 🧰 Devcontainer
 
 This repo includes a devcontainer configuration that isolates `pwnv` state
 inside the workspace. Open the folder in Zed and it will build the container
@@ -196,7 +196,7 @@ The following table summarizes the available commands. For detailed usage, appen
 | `pwnv ctf add <name>` | Adds a new CTF event (local or remote). |
 | `pwnv ctf remove` | Deletes a CTF event and its challenges. |
 | `pwnv ctf info` | Displays metadata for a selected CTF. |
-| `pwnv ctf sync` | Fetches new challenges from a remote CTF. |
+| `pwnv ctf sync` | Adds and updates challenges from a remote CTF. |
 | `pwnv ctf start` | Sets a CTF's status to 'running'. |
 | `pwnv ctf stop` | Sets a CTF's status to 'stopped'. |
 | | |
@@ -204,8 +204,16 @@ The following table summarizes the available commands. For detailed usage, appen
 | `pwnv challenge remove` | Deletes a specific challenge. |
 | `pwnv challenge info` | Displays metadata for a selected challenge. |
 | `pwnv challenge filter` | Lists solved challenges based on specified tags. |
+| `pwnv challenge search <QUERY>` | Searches names, descriptions, categories, and tags. |
+| `pwnv challenge note add <TEXT>` | Adds a timestamped Markdown note. |
+| `pwnv challenge note show` | Displays the current challenge notes. |
+| `pwnv challenge env add <PACKAGE...>` | Installs packages in a challenge-local environment. |
+| `pwnv challenge env run <COMMAND...>` | Runs a command in the challenge environment. |
 | | |
 | `pwnv solve` | Marks a challenge as solved and handles flag submission/tagging. |
+| `pwnv solve --history` | Displays submission history with flags redacted. |
+| `pwnv status` | Displays solved and point progress for the workspace. |
+| `pwnv doctor` | Checks workspace configuration, paths, tools, and consistency. |
 | | |
 | `pwnv plugin add <name>` | Creates a new plugin and its associated template. |
 | `pwnv plugin remove` | Deletes an existing plugin file. |
@@ -221,11 +229,48 @@ Common workflows can be scripted without interactive selectors:
 
 ```bash
 pwnv ctf add ExampleCTF --local
+pwnv ctf add DemoCTF --url https://demo.ctfd.io/ --username user --password password
+pwnv ctf sync --ctf DemoCTF
 pwnv challenge add RopMaster --ctf ExampleCTF --category pwn
+pwnv challenge search rop --ctf ExampleCTF
+pwnv challenge search --category pwn --tag rop --min-points 100 --unsolved
 pwnv solve --flag 'FLAG{example}' --challenge RopMaster --tags pwn,rop
+pwnv solve --history --challenge RopMaster --ctf ExampleCTF
+pwnv status --ctf ExampleCTF
+pwnv doctor
 pwnv workspace backup ./backups/pwnv --force
 pwnv workspace import ./pwnv-export.json --force
 ```
+
+For remote automation, credentials can be passed through `PWNV_CTF_USERNAME`
+and `PWNV_CTF_PASSWORD`, or `PWNV_CTF_TOKEN`, instead of command-line options.
+Environment variables avoid exposing secrets in shell history and process listings.
+
+Running `pwnv ctf sync` updates existing challenge points, categories, solved state,
+descriptions, services, tags, and attachments in addition to fetching new challenges.
+Local tags, solved progress, flags, and challenge directory paths are preserved.
+
+### Challenge notes and environments
+
+Notes are stored as portable Markdown in the challenge directory:
+
+```bash
+pwnv challenge note add "Offset is 72 bytes" --section Pwn \
+  --challenge RopMaster --ctf ExampleCTF
+pwnv challenge note show --challenge RopMaster --ctf ExampleCTF
+```
+
+Each challenge can also have an isolated `.venv` managed through `uv`:
+
+```bash
+pwnv challenge env add pwntools z3-solver \
+  --challenge RopMaster --ctf ExampleCTF
+pwnv challenge env run --challenge RopMaster --ctf ExampleCTF python solve.py
+```
+
+Flag submission history is stored in workspace configuration. Flags are redacted
+unless `pwnv solve --history --show-flags` is explicitly used. Portable workspace
+exports remove stored flags and submission history.
 
 For a completely unattended initial setup, combine `--yes` and `--no-install`:
 

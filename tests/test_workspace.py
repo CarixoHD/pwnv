@@ -14,6 +14,7 @@ from pwnv.utils import (
     get_ctfs_path,
     import_workspace,
     save_config,
+    update_challenge,
 )
 
 
@@ -42,6 +43,16 @@ def test_backup_contains_config_and_challenge_files(tmp_path):
     assert "ctfs/example-ctf/web/challenge/notes.txt" in names
 
 
+def test_backup_does_not_include_itself(tmp_path):
+    _create_workspace(tmp_path)
+    destination = get_ctfs_path() / "workspace-backup"
+
+    backup = backup_workspace(destination)
+
+    with tarfile.open(backup) as archive:
+        assert "ctfs/workspace-backup.tar.gz" not in archive.getnames()
+
+
 def test_export_and_import_rebase_paths(tmp_path):
     _create_workspace(tmp_path)
     exported = export_workspace(tmp_path / "workspace")
@@ -65,3 +76,20 @@ def test_export_and_import_rebase_paths(tmp_path):
     assert imported_ctf.path == current_ctfs_path / "example-ctf"
     assert imported_challenge.path == imported_ctf.path / "web" / "web-challenge"
     assert imported_challenge.path.is_dir()
+
+
+def test_export_removes_flags_and_submission_history(tmp_path):
+    _, challenge = _create_workspace(tmp_path)
+    challenge.flag = "FLAG{secret}"
+    challenge.extras = {
+        "description": "safe metadata",
+        "flag_history": [{"flag": "FLAG{attempt}"}],
+    }
+    update_challenge(challenge)
+
+    exported = export_workspace(tmp_path / "shareable")
+    data = json.loads(exported.read_text(encoding="utf-8"))
+
+    assert data["challenges"][0]["flag"] is None
+    assert "flag_history" not in data["challenges"][0]["extras"]
+    assert data["challenges"][0]["extras"]["description"] == "safe metadata"

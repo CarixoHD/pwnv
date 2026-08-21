@@ -13,6 +13,7 @@ from pwnv.utils import (
     is_duplicate,
     remove_challenge,
     remove_ctf,
+    search_challenges,
     update_challenge,
 )
 
@@ -101,3 +102,21 @@ def test_is_duplicate_by_name_and_path(fresh_ctf):
     other_path = get_ctfs_path() / "other_ctf"
     duplicate_ctf_other_path = CTF(name="ExampleCTF", path=other_path)
     assert is_duplicate(model_list=get_ctfs(), name=duplicate_ctf_other_path.name)
+
+
+def test_search_challenges_matches_metadata(fresh_ctf):
+    challenge = Challenge(
+        ctf_id=fresh_ctf.id,
+        name="Hidden Message",
+        path=fresh_ctf.path / "forensics" / "hidden-message",
+        category=Category.forensics,
+        tags=["steganography"],
+        extras={"description": "Inspect the suspicious image"},
+    )
+    add_challenge(challenge)
+
+    assert search_challenges("hidden") == [challenge]
+    assert search_challenges("SUSPICIOUS") == [challenge]
+    assert search_challenges("forensic") == [challenge]
+    assert search_challenges("stegano") == [challenge]
+    assert search_challenges("missing") == []
