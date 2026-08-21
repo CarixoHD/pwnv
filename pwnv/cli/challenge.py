@@ -21,12 +21,20 @@ app = typer.Typer(
 @app.command()
 @config_exists()
 @ctfs_exists()
-def add(name: str) -> None:
+def add(
+    name: str,
+    ctf: str | None = typer.Option(None, "--ctf", help="CTF name (skips selection)"),
+    category: str | None = typer.Option(
+        None, "--category", help="Challenge category (skips selection)"
+    ),
+) -> None:
     """Adds a new challenge to a selected CTF."""
+    from pwnv.models.challenge import Category
     from pwnv.utils import (
         add_challenge,
         challenges_for_ctf,
         error,
+        get_ctf_by_name,
         get_current_ctf,
         get_running_ctfs,
         is_duplicate,
@@ -37,29 +45,46 @@ def add(name: str) -> None:
         warn,
     )
 
-    chosen_ctf: CTF | None = get_current_ctf() or (
-        prompt_ctf_selection(get_running_ctfs(), "Select a running CTF:")
-        if get_running_ctfs()
-        else None
+    named_ctf = get_ctf_by_name(ctf) if ctf else None
+    if ctf and named_ctf is None:
+        error(f"CTF '{ctf}' does not exist.")
+        raise typer.Exit(code=1)
+
+    chosen_ctf: CTF | None = (
+        named_ctf
+        or get_current_ctf()
+        or (
+            prompt_ctf_selection(get_running_ctfs(), "Select a running CTF:")
+            if get_running_ctfs()
+            else None
+        )
     )
     if not chosen_ctf:
         warn("No running CTFs found.")
         return
 
-    category = prompt_category_selection()
-    ch_path = chosen_ctf.path / category.name / sanitize(name)
+    if category:
+        try:
+            chosen_category = Category[category.lower()]
+        except KeyError:
+            choices = ", ".join(item.name for item in Category)
+            error(f"Unknown category '{category}'. Choose one of: {choices}.")
+            raise typer.Exit(code=1)
+    else:
+        chosen_category = prompt_category_selection()
+    ch_path = chosen_ctf.path / chosen_category.name / sanitize(name)
 
     if ch_path.exists() or is_duplicate(
         path=ch_path, model_list=challenges_for_ctf(chosen_ctf)
     ):
         error(
             f"[cyan]{name}[/] already exists in "
-            f"[cyan]{chosen_ctf.name}/{category.name}/[/]."
+            f"[cyan]{chosen_ctf.name}/{chosen_category.name}/[/]."
         )
         return
 
     challenge = Challenge(
-        ctf_id=chosen_ctf.id, name=name, path=ch_path, category=category
+        ctf_id=chosen_ctf.id, name=name, path=ch_path, category=chosen_category
     )
     add_challenge(challenge)
     success(f"[cyan]{challenge.name}[/] added")

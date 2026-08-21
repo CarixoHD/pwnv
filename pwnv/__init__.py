@@ -7,6 +7,7 @@ from pwnv.cli import (
     plugin_app,
     reset_app,
     solve_app,
+    workspace_app,
 )
 
 
@@ -18,5 +19,6 @@ def main():
     app.add_typer(reset_app)
     app.add_typer(solve_app)
     app.add_typer(plugin_app, name="plugin")
+    app.add_typer(workspace_app, name="workspace")
 
     app()

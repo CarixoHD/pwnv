@@ -15,6 +15,12 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def init(
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Accept directory creation prompts for unattended setup",
+    ),
     no_install: bool = typer.Option(
         False,
         "--no-install",
@@ -62,12 +68,12 @@ def init(
     ctfs_folder = ctfs_folder.resolve()
     env_path = ctfs_folder / DEFAULT_PWNVENV_FOLDER_NAME
 
-    if ctfs_folder.exists() and any(ctfs_folder.iterdir()):
+    if not yes and ctfs_folder.exists() and any(ctfs_folder.iterdir()):
         if not prompt_confirm(
             f"Directory {ctfs_folder} already exists. Continue?", default=False
         ):
             return
-    else:
+    elif not yes:
         if not prompt_confirm(
             f"Create new CTF directory at {ctfs_folder}?", default=True
         ):

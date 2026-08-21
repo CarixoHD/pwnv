@@ -8,11 +8,11 @@ name = "pwnv"
 dynamic = ["version"]
 description = "CLI tool for CTF management"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
   {name = "Shayan Alinejad", email = "shayan.alinejad@proton.me"}
 ]
-keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf","cli", "tool", "workspace", "management", "automation", "workflow", "challenges"]
+keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf", "tool", "workspace", "automation", "workflow", "challenges"]
 requires-python = ">=3.12"
 dependencies = [
     "ctfbridge>=0.8.9",
@@ -56,7 +56,7 @@ local_scheme = "no-local-version"
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["plugin_examples*"]
+exclude = ["plugin_examples*", "tests*"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

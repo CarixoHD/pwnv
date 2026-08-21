@@ -211,6 +211,31 @@ The following table summarizes the available commands. For detailed usage, appen
 | `pwnv plugin remove` | Deletes an existing plugin file. |
 | `pwnv plugin info` | Displays information about registered plugins. |
 | `pwnv plugin select` | Assigns a specific plugin to a challenge category. |
+| `pwnv workspace backup [PATH]` | Creates a full archive, including challenge files and credentials. |
+| `pwnv workspace export [PATH]` | Exports portable workspace metadata without files or credentials. |
+| `pwnv workspace import <PATH>` | Imports metadata and rebases paths into the current workspace. |
+
+### Noninteractive usage
+
+Common workflows can be scripted without interactive selectors:
+
+```bash
+pwnv ctf add ExampleCTF --local
+pwnv challenge add RopMaster --ctf ExampleCTF --category pwn
+pwnv solve --flag 'FLAG{example}' --challenge RopMaster --tags pwn,rop
+pwnv workspace backup ./backups/pwnv --force
+pwnv workspace import ./pwnv-export.json --force
+```
+
+For a completely unattended initial setup, combine `--yes` and `--no-install`:
+
+```bash
+pwnv init --yes --no-install --ctfs-folder /tmp/ctfs
+```
+
+`workspace backup` contains the complete workspace, including remote credentials.
+Store its archive securely. `workspace export` contains metadata only and is the
+safer format for sharing or moving workspace structure.
 
 -----
 

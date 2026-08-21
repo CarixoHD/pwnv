@@ -72,6 +72,7 @@ from pwnv.utils.ui import (
     success,
     warn,
 )
+from pwnv.utils.workspace import backup_workspace, export_workspace, import_workspace
 
 __all__ = [
     # config
@@ -142,4 +143,8 @@ __all__ = [
     "remove_selected_plugin_for_category",
     "save_plugin_selection",
     "create_plugin_file",
+    # workspace
+    "backup_workspace",
+    "export_workspace",
+    "import_workspace",
 ]

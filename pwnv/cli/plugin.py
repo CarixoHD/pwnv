@@ -120,8 +120,8 @@ def remove() -> None:
             if selected_plugin_name == plugin_name_lower:
                 keys_to_delete.append(cat_name)
                 info(
-                    f"Removed '{plugin_name_lower}'"
-                    "as selected plugin for '{cat_name}'."
+                    f"Removed '{plugin_name_lower}' "
+                    f"as selected plugin for '{cat_name}'."
                 )
                 updated = True
 
