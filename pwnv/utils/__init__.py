@@ -27,6 +27,7 @@ from pwnv.utils.crud import (
     is_duplicate,
     remove_challenge,
     remove_ctf,
+    search_challenges,
     update_challenge,
     update_ctf,
 )
@@ -54,6 +55,7 @@ from pwnv.utils.remote import (
     sanitize,
     sync_remote_ctf,
 )
+from pwnv.utils.selection import resolve_challenge
 from pwnv.utils.ui import (
     command,
     error,
@@ -101,6 +103,7 @@ __all__ = [
     "is_duplicate",
     "remove_challenge",
     "remove_ctf",
+    "search_challenges",
     "update_challenge",
     "update_ctf",
     "get_challenge_by_name",
@@ -116,6 +119,7 @@ __all__ = [
     "remote_solve",
     "sanitize",
     "sync_remote_ctf",
+    "resolve_challenge",
     # ui
     "prompt_confirm",
     "error",

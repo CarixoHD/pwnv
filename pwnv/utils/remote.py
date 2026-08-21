@@ -1,6 +1,7 @@
 """Helpers for interacting with remote CTF platforms via ``ctfbridge``."""
 
 import asyncio
+from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from pwnv.models import CTF, Challenge
@@ -79,6 +80,33 @@ def _ask_for_credentials(methods) -> Dict[str, str | None]:
 _runner: asyncio.Runner | None = None
 
 
+def _load_credentials(path: Path) -> Dict[str, str | None]:
+    """Load credentials from ``path`` without modifying the environment."""
+    from dotenv import dotenv_values
+
+    values = dotenv_values(path)
+    return {
+        "username": values.get("CTF_USERNAME"),
+        "password": values.get("CTF_PASSWORD"),
+        "token": values.get("CTF_TOKEN"),
+    }
+
+
+def _save_credentials(path: Path, creds: Dict[str, str | None]) -> None:
+    """Store credentials in a user-readable dotenv file."""
+    from dotenv import set_key
+
+    path.touch(mode=0o600, exist_ok=True)
+    path.chmod(0o600)
+    for name, key in (
+        ("username", "CTF_USERNAME"),
+        ("password", "CTF_PASSWORD"),
+        ("token", "CTF_TOKEN"),
+    ):
+        if value := creds.get(name):
+            set_key(path, key, value)
+
+
 def _run_async(coro):
     """Run ``coro`` in a persistent asyncio runner."""
     import asyncio
@@ -91,14 +119,14 @@ def _run_async(coro):
     return _runner.run(coro)
 
 
-def add_remote_ctf(ctf: CTF) -> bool:
+def add_remote_ctf(ctf: CTF, credentials: Dict[str, str | None] | None = None) -> bool:
     """Interactively add ``ctf`` by fetching its challenges remotely."""
     from pwnv.utils.crud import add_ctf, remove_ctf
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
     if client is None or methods is None:
         return False
-    creds = _ask_for_credentials(methods)
+    creds = credentials or _ask_for_credentials(methods)
     if not creds:
         return False
 
@@ -113,33 +141,23 @@ def add_remote_ctf(ctf: CTF) -> bool:
         remove_ctf(ctf)
         return False
 
-    env_path = ctf.path / ".env"
-    with open(env_path, "w") as f:
-        if creds.get("username", None):
-            f.write(f"CTF_USERNAME={creds.get('username')}\n")
-        if creds.get("password", None):
-            f.write(f"CTF_PASSWORD={creds.get('password')}\n")
-        if creds.get("token", None):
-            f.write(f"CTF_TOKEN={creds.get('token')}\n")
+    _save_credentials(ctf.path / ".env", creds)
 
     _run_async(add_remote_challenges(client, ctf, challenges))
     return True
 
 
-def sync_remote_ctf(ctf: CTF) -> None:
+def sync_remote_ctf(ctf: CTF) -> bool:
     """Fetch new challenges for ``ctf`` from its remote platform."""
-    from dotenv import load_dotenv
-
-    from pwnv.utils.crud import challenges_for_ctf
     from pwnv.utils.ui import info, warn
 
     if not ctf.url:
         warn("CTF has no remote URL configured.")
-        return
+        return False
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
     if client is None or methods is None:
-        return
+        return False
 
     creds: Dict[str, str | None] = {}
     if (ctf.path / ".session").exists():
@@ -149,39 +167,30 @@ def sync_remote_ctf(ctf: CTF) -> None:
             warn(f"Ignoring broken session cookie ({e}).")
             creds = _ask_for_credentials(methods)
             if not creds:
-                return
+                return False
             if not _run_async(create_remote_session(client, creds, ctf)):
-                return
+                return False
     elif (ctf.path / ".env").exists():
-        import os
-
-        load_dotenv(ctf.path / ".env")
-        creds = {
-            "username": os.getenv("CTF_USERNAME"),
-            "password": os.getenv("CTF_PASSWORD"),
-            "token": os.getenv("CTF_TOKEN"),
-        }
+        creds = _load_credentials(ctf.path / ".env")
         if not _run_async(create_remote_session(client, creds, ctf)):
-            return
+            return False
     else:
         creds = _ask_for_credentials(methods)
         if not creds:
-            return
+            return False
         if not _run_async(create_remote_session(client, creds, ctf)):
-            return
+            return False
 
     challenges = _run_async(get_remote_challenges(client, ctf))
     if challenges is None:
-        return
+        return False
 
-    existing = {sanitize(ch.name) for ch in challenges_for_ctf(ctf)}
-    new_challenges = [ch for ch in challenges if sanitize(ch.name) not in existing]
+    if not challenges:
+        info("No challenges found.")
+        return True
 
-    if not new_challenges:
-        info("No new challenges found.")
-        return
-
-    _run_async(add_remote_challenges(client, ctf, new_challenges))
+    _run_async(add_remote_challenges(client, ctf, challenges))
+    return True
 
 
 async def get_remote_credential_methods(
@@ -233,16 +242,26 @@ async def get_remote_challenges(client: Any, ctf: CTF):
 
 
 async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
-    """Persist fetched challenges locally and download attachments."""
+    """Create or update fetched challenges and download their attachments."""
     from pwnv.models import Challenge
     from pwnv.models.challenge import Solved
-    from pwnv.utils.crud import add_challenge
+    from pwnv.utils.crud import add_challenge, challenges_for_ctf, update_challenge
     from pwnv.utils.ui import success
 
+    existing_challenges = challenges_for_ctf(ctf)
     for ch in challenges:
         category = normalise_category(ch.category)
         name = sanitize(ch.name)
-        path = ctf.path / category.name / name
+        existing = next(
+            (
+                item
+                for item in existing_challenges
+                if (isinstance(item.extras, dict) and item.extras.get("slug") == ch.id)
+                or sanitize(item.name) == name
+            ),
+            None,
+        )
+        path = existing.path if existing else ctf.path / category.name / name
 
         try:
             ch = await client.attachments.download_all(ch, save_dir=path)
@@ -256,6 +275,26 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
         ]
         services = [svc.model_dump(mode="json") for svc in getattr(ch, "services", [])]
 
+        extras = {
+            **(existing.extras if existing and existing.extras else {}),
+            **{
+                "slug": ch.id,
+                "description": ch.description,
+                "attachments": attachments,
+                "services": services,
+                "author": ch.author,
+            },
+        }
+        if existing:
+            existing.category = category
+            existing.points = ch.value
+            existing.solved = Solved.solved if ch.solved else existing.solved
+            existing.extras = extras
+            existing.tags = sorted(set(existing.tags or []) | set(ch.tags or []))
+            update_challenge(existing)
+            success(f"{existing.name} ({existing.points} pts) updated")
+            continue
+
         challenge = Challenge(
             name=name,
             ctf_id=ctf.id,
@@ -263,26 +302,18 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
             category=category,
             points=ch.value,
             solved=Solved.solved if ch.solved else Solved.unsolved,
-            extras={
-                "slug": ch.id,
-                "description": ch.description,
-                "attachments": attachments,
-                "services": services,
-                "author": ch.author,
-            },
+            extras=extras,
             tags=ch.tags,
         )
         add_challenge(challenge)
+        existing_challenges.append(challenge)
 
         success(f"{challenge.name} ({challenge.points} pts) added")
 
 
 async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
     """Submit ``flag`` to the remote platform and return ``True`` if correct."""
-    import os
-
     from ctfbridge import create_client
-    from dotenv import load_dotenv
 
     if not ctf.url:
         return False
@@ -297,12 +328,7 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
             warn(f"Ignoring broken session cookie ({e}).")
 
     elif (ctf.path / ".env").exists():
-        load_dotenv(ctf.path / ".env")
-        creds = {
-            "username": os.getenv("CTF_USERNAME"),
-            "password": os.getenv("CTF_PASSWORD"),
-            "token": os.getenv("CTF_TOKEN"),
-        }
+        creds = _load_credentials(ctf.path / ".env")
         await client.auth.login(**{k: v for k, v in creds.items() if v is not None})
     else:
         creds = _ask_for_credentials(await client.auth.get_supported_auth_methods())
