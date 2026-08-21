@@ -4,7 +4,20 @@ import shutil
 import pytest
 
 from pwnv.models import CTF
-from pwnv.utils import add_remote_ctf, get_ctfs_path
+from pwnv.utils import add_remote_ctf, get_ctfs_path, sanitize
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Basic Challenge", "basic-challenge"),
+        ("../Escape\\Attempt", "_escape_attempt"),
+        ("...", "challenge"),
+        ("line\nbreak", "line-break"),
+    ],
+)
+def test_sanitize_produces_safe_challenge_names(name, expected):
+    assert sanitize(name) == expected
 
 
 @pytest.mark.skipif(

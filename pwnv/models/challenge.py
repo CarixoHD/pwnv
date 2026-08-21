@@ -2,7 +2,7 @@ import uuid
 from enum import IntEnum
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Category(IntEnum):
@@ -27,7 +27,7 @@ class Solved(IntEnum):
 
 
 class Challenge(BaseModel):
-    id: uuid.UUID | int = uuid.uuid4()
+    id: uuid.UUID | int = Field(default_factory=uuid.uuid4)
     name: str
     flag: str | None = None
     points: int | None = None

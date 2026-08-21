@@ -28,7 +28,12 @@ _keyword_map = {
 
 def sanitize(name: str) -> str:
     """Return a filesystem friendly version of ``name``."""
-    return name.strip().replace(" ", "-").replace("..", ".").replace("/", "_").lower()
+    import re
+
+    sanitized = re.sub(r"\s+", "-", name.strip().lower())
+    sanitized = re.sub(r"[/\\\x00-\x1f\x7f]", "_", sanitized)
+    sanitized = re.sub(r"\.{2,}", ".", sanitized).strip(".-")
+    return sanitized or "challenge"
 
 
 def normalise_category(raw: str) -> Category:

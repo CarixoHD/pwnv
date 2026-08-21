@@ -13,7 +13,12 @@ app = typer.Typer(no_args_is_help=True, help="Manage CTFs.")
 
 @app.command()
 @config_exists()
-def add(name: str) -> None:
+def add(
+    name: str,
+    local: bool = typer.Option(
+        False, "--local", help="Create a local CTF without prompting"
+    ),
+) -> None:
     """Adds a new CTF, either local or remote, to your environment."""
     from pwnv.utils import (
         add_ctf,
@@ -34,7 +39,7 @@ def add(name: str) -> None:
 
         return
 
-    if prompt_confirm(
+    if not local and prompt_confirm(
         "Do you want to add a remote CTF? (y/n)",
         default=False,
     ):
