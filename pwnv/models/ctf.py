@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Status(IntEnum):
@@ -12,9 +12,9 @@ class Status(IntEnum):
 
 
 class CTF(BaseModel):
-    id: uuid.UUID = uuid.uuid4()
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     name: str
-    created_at: datetime = datetime.now()
+    created_at: datetime = Field(default_factory=datetime.now)
     path: Path
     running: Status = Status.running
     url: str | None = None

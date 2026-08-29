@@ -78,6 +78,67 @@ def get_challenge_by_name(name: str) -> Challenge | None:
     return None
 
 
+def search_challenges(
+    query: str = "",
+    challenges: Sequence[Challenge] | None = None,
+    *,
+    category: str | None = None,
+    tags: Sequence[str] | None = None,
+    min_points: int | None = None,
+    max_points: int | None = None,
+    has_service: bool | None = None,
+    solved: bool | None = None,
+) -> List[Challenge]:
+    """Return challenges whose searchable metadata contains ``query``."""
+    needle = query.casefold().strip()
+    requested_tags = {tag.casefold() for tag in tags or []}
+    if (
+        not needle
+        and not any(
+            value is not None
+            for value in (category, min_points, max_points, has_service, solved)
+        )
+        and not requested_tags
+    ):
+        return []
+
+    matches = []
+    for challenge in challenges if challenges is not None else get_challenges():
+        description = (
+            challenge.extras.get("description", "")
+            if isinstance(challenge.extras, dict)
+            else ""
+        )
+        values = [
+            challenge.name,
+            challenge.category.name,
+            description or "",
+            *(challenge.tags or []),
+        ]
+        if needle and not any(needle in str(value).casefold() for value in values):
+            continue
+        if category and challenge.category.name != category.casefold():
+            continue
+        challenge_tags = {tag.casefold() for tag in challenge.tags or []}
+        if requested_tags and not requested_tags.issubset(challenge_tags):
+            continue
+        if min_points is not None and (challenge.points or 0) < min_points:
+            continue
+        if max_points is not None and (challenge.points or 0) > max_points:
+            continue
+        services = (
+            challenge.extras.get("services", [])
+            if isinstance(challenge.extras, dict)
+            else []
+        )
+        if has_service is not None and bool(services) != has_service:
+            continue
+        if solved is not None and bool(challenge.solved) != solved:
+            continue
+        matches.append(challenge)
+    return matches
+
+
 def get_ctf_by_name(name: str) -> CTF | None:
     for ctf in get_ctfs():
         if ctf.name == name:

@@ -1,10 +1,119 @@
 import os
 import shutil
+from types import SimpleNamespace
 
 import pytest
 
-from pwnv.models import CTF
-from pwnv.utils import add_remote_ctf, get_ctfs_path
+from pwnv.models import CTF, Challenge
+from pwnv.models.challenge import Category, Solved
+from pwnv.utils import (
+    add_challenge,
+    add_ctf,
+    add_remote_ctf,
+    get_challenges,
+    get_ctfs_path,
+    sanitize,
+    sync_remote_ctf,
+)
+
+
+class _RemoteMetadata:
+    def __init__(self, **values):
+        self.values = values
+
+    def model_dump(self, mode="json"):
+        return self.values
+
+
+class _Attachments:
+    async def download_all(self, challenge, save_dir):
+        save_dir.mkdir(parents=True, exist_ok=True)
+        (save_dir / "updated.txt").write_text("attachment", encoding="utf-8")
+        return challenge
+
+
+def test_remote_sync_updates_existing_challenge_metadata(tmp_path):
+    import pwnv.utils.remote as remote
+
+    ctf = CTF(name="Remote", path=get_ctfs_path() / "remote", url="https://ctf")
+    add_ctf(ctf)
+    existing = Challenge(
+        name="old-name",
+        ctf_id=ctf.id,
+        path=ctf.path / "pwn" / "old-name",
+        points=50,
+        solved=Solved.solved,
+        tags=["local"],
+        extras={"slug": 42, "description": "old"},
+    )
+    add_challenge(existing)
+    fetched = SimpleNamespace(
+        id=42,
+        name="Renamed Challenge",
+        category="web",
+        value=200,
+        solved=False,
+        description="new searchable description",
+        attachments=[_RemoteMetadata(name="updated.txt")],
+        services=[_RemoteMetadata(host="example.com", port=443)],
+        author="author",
+        tags=["remote"],
+    )
+    client = SimpleNamespace(attachments=_Attachments())
+
+    remote._run_async(remote.add_remote_challenges(client, ctf, [fetched]))
+
+    updated = get_challenges()[0]
+    assert updated.points == 200
+    assert updated.category == Category.web
+    assert updated.solved == Solved.solved
+    assert updated.tags == ["local", "remote"]
+    assert updated.extras["description"] == "new searchable description"
+    assert updated.extras["services"] == [{"host": "example.com", "port": 443}]
+    assert (updated.path / "updated.txt").read_text(encoding="utf-8") == "attachment"
+
+
+def test_credentials_are_loaded_without_changing_environment(tmp_path, monkeypatch):
+    import pwnv.utils.remote as remote
+
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        'CTF_USERNAME="second"\nCTF_PASSWORD="special value"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CTF_USERNAME", "first")
+
+    credentials = remote._load_credentials(env_path)
+
+    assert credentials["username"] == "second"
+    assert credentials["password"] == "special value"
+    assert os.environ["CTF_USERNAME"] == "first"
+
+
+def test_credentials_are_saved_with_restricted_permissions(tmp_path):
+    import pwnv.utils.remote as remote
+
+    env_path = tmp_path / ".env"
+    remote._save_credentials(
+        env_path,
+        {"username": "user", "password": "value with spaces", "token": None},
+    )
+
+    assert remote._load_credentials(env_path)["password"] == "value with spaces"
+    assert env_path.stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Basic Challenge", "basic-challenge"),
+        ("../Escape\\Attempt", "_escape_attempt"),
+        ("...", "challenge"),
+        ("line\nbreak", "line-break"),
+    ],
+)
+def test_sanitize_produces_safe_challenge_names(name, expected):
+    assert sanitize(name) == expected
 
 
 @pytest.mark.skipif(
@@ -76,6 +185,10 @@ def test_add_remote_ctf_integration(monkeypatch, isolated_config):
 
     assert ctf_path.exists() and ctf_path.is_dir()
     assert any(ctf_path.iterdir()), "Expected remote sync to create challenge data"
+
+    original = {challenge.id for challenge in get_challenges()}
+    assert sync_remote_ctf(ctf)
+    assert {challenge.id for challenge in get_challenges()} == original
 
 
 def test_add_remote_ctf_fails_when_client_unavailable(monkeypatch, isolated_config):

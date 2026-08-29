@@ -1,16 +1,36 @@
 # Python-generated files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+
+# Test, type-checker, and coverage caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Virtual environments
-.venv
+.venv/
+venv/
+env/
 
-.ruff_cache/
+# Local configuration and credentials
 .env
+.env.*
+!.env.example
+.session
+pwnv_config.json
+pwnv_config.json.lock
+
+# Local workspace and editor files
 old_*
 .pwnv/
 .vscode/
+.idea/
+.DS_Store
