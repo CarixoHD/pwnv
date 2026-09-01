@@ -179,12 +179,13 @@ from pwnv.plugins.plugin import ChallengePlugin
 from pwnv.models import Challenge
 from pwnv.utils.ui import info
 
+
 @register_plugin
 class BasicPwnPlugin(ChallengePlugin):
     # Copy 'solve.py' and 'gdbinit' from templates/pwn/ to the challenge dir.
     templates_to_copy = {
         "solve.py": None,
-        "gdbinit": "gdbinit_rop" # save as gdbinit_rop
+        "gdbinit": "gdbinit_rop",  # save as gdbinit_rop
     }
 
     def category(self) -> Category:
@@ -193,7 +194,6 @@ class BasicPwnPlugin(ChallengePlugin):
     def logic(self, challenge: Challenge) -> None:
         # Custom logic for pwn challenges
         info(f"Set up basic pwn environment for {challenge.name}")
-
 ```
 
 -----

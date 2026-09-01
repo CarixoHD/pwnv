@@ -2,9 +2,7 @@ from pwn import *
 
 con = "{{service.host}} {{service.port}}"
 
-
 host, port = con.replace(" ", ":").split(":")
-
 
 ssl = False
 
@@ -14,12 +12,16 @@ gdbscript = """
     c
 """
 
+
+def _fmt(obj):
+    return obj if isinstance(obj, (bytes, bytearray)) else str(obj).encode()
+
+
 elf = context.binary = ELF(binary)
 libc = context.binary.libc
 context.terminal = ["tmux", "splitw", "-h"]
 
 
-# utils
 def u64(d):
     return struct.unpack("<Q", d.ljust(8, b"\0"))[0]
 
@@ -32,33 +34,32 @@ def u16(d):
     return struct.unpack("<H", d.ljust(2, b"\0"))[0]
 
 
-# credits to spwn by @chino
-def ru(*x, **y):
-    return p.recvuntil(*x, **y, drop=True)
+def ru(d, **y):
+    return p.recvuntil(_fmt(d), drop=True, **y)
 
 
-def rl(*x, **y):
-    return p.recvline(*x, **y, keepends=False)
+def sa(d, x, **y):
+    return p.sendafter(_fmt(d), _fmt(x), **y)
 
 
-def rc(*x, **y):
-    return p.recv(*x, **y)
+def sla(d, x, **y):
+    return p.sendlineafter(_fmt(d), _fmt(x), **y)
 
 
-def sla(*x, **y):
-    return p.sendlineafter(*x, **y)
+def sl(x, **y):
+    return p.sendline(_fmt(x), **y)
 
 
-def sa(*x, **y):
-    return p.sendafter(*x, **y)
+def sn(x, **y):
+    return p.send(_fmt(x), **y)
 
 
-def sl(*x, **y):
-    return p.sendline(*x, **y)
+def rc(n, **y):
+    return p.recv(n, **y)
 
 
-def sn(*x, **y):
-    return p.send(*x, **y)
+def rl(**y):
+    return p.recvline(drop=True, **y)
 
 
 def logbase():
