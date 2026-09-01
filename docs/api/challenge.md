@@ -29,23 +29,23 @@ The values are read when the script runs, not when the file was created.
 ## What is on it
 
 ```python
-challenge.name              # 'Baby ROP'
-challenge.value             # 250
-challenge.category          # 'pwn'      (first of challenge.categories)
+challenge.name  # 'Baby ROP'
+challenge.value  # 250
+challenge.category  # 'pwn'      (first of challenge.categories)
 challenge.description
-challenge.tags              # ['rop', 'nx']
-challenge.solved            # True / False
-challenge.author            # first of challenge.authors
+challenge.tags  # ['rop', 'nx']
+challenge.solved  # True / False
+challenge.author  # first of challenge.authors
 
-challenge.service           # first Service, or None
-challenge.service.host      # 'chal.example.org'
-challenge.service.port      # 31337
-challenge.service.url       # for web challenges
-challenge.service.raw       # 'nc chal.example.org 31337'
-challenge.services          # all of them
+challenge.service  # first Service, or None
+challenge.service.host  # 'chal.example.org'
+challenge.service.port  # 31337
+challenge.service.url  # for web challenges
+challenge.service.raw  # 'nc chal.example.org 31337'
+challenge.services  # all of them
 challenge.has_services
 
-challenge.attachments       # AttachmentCollection: iterate, index, len()
+challenge.attachments  # AttachmentCollection: iterate, index, len()
 challenge.attachments[0].name
 challenge.attachments[0].local_path
 ```
@@ -75,7 +75,7 @@ script or REPL was open is picked up. In a long-lived process, ask again:
 ```python
 from pwnv.api import current
 
-challenge = current()               # the working directory
+challenge = current()  # the working directory
 challenge = current("/path/to/it")  # or a specific one
 ```
 

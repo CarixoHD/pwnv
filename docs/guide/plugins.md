@@ -35,7 +35,7 @@ from pwnv.plugins.plugin import ChallengePlugin
 @register_plugin
 class MyPwnPlugin(ChallengePlugin):
     templates_to_copy = {
-        "rop.py": "solve.py",   # source in templates/pwn/ -> name on disk
+        "rop.py": "solve.py",  # source in templates/pwn/ -> name on disk
     }
 
     def category(self) -> Category:
