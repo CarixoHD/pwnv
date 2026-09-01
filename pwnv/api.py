@@ -13,8 +13,9 @@ disk. Reading it here binds the value at run time instead.
 
 What comes back is a :class:`ctfbridge.models.challenge.Challenge`, rebuilt from
 the workspace: the same object the sync fetched, with the same fields, helpers
-and serialisers. ``path`` is the only thing added, since a script started from
-elsewhere still has to find its own files.
+and serialisers. Two fields are added, because they are local facts the platform
+never sends - ``path``, since a script started from elsewhere still has to find
+its own files, and ``flag``, recorded by ``pwnv solve``.
 """
 
 from __future__ import annotations

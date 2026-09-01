@@ -431,7 +431,7 @@ pwnv workspace restore [OPTIONS] SOURCE
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--force`, `-f` |  |  | Overwrite challenge files already on disk |
+| `--force`, `-f` |  |  | Overwrite challenge files already on disk, and answer the --replace confirmation |
 | `--replace` |  |  | Discard the current metadata instead of merging into it |
 
 ### `pwnv workspace export`
@@ -460,5 +460,5 @@ pwnv workspace import [OPTIONS] SOURCE
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--force`, `-f` |  |  |  |
+| `--force`, `-f` |  |  | Answer the --replace confirmation |
 | `--replace` |  |  | Discard the current metadata instead of merging into it |

@@ -84,7 +84,7 @@ def _arguments(command: click.Command) -> list[click.Argument]:
 def _walk(
     command: click.Command, path: list[str]
 ) -> Iterator[tuple[list[str], click.Command]]:
-    """Yield every leaf command, breadth first, in the order Typer declares it."""
+    """Yield every leaf command, depth first, in the order Typer declares it."""
     if isinstance(command, click.Group):
         for name, child in command.commands.items():
             yield from _walk(child, [*path, name])

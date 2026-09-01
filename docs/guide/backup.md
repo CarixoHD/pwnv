@@ -64,7 +64,8 @@ pwnv workspace restore ~/pwnv-move.tar.gz --force
 
 **It will not discard your metadata.** Records already present are skipped, so
 restoring the same archive twice adds nothing the second time. `--replace`
-throws away the current metadata first, and asks before it does.
+throws away the current metadata first, and asks before it does — `--force`
+answers that prompt too, so `--replace --force` discards without asking.
 
 !!! note "Directory names are preserved"
 

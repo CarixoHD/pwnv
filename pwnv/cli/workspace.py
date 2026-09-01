@@ -32,7 +32,13 @@ def backup(
 def restore(
     source: Path,
     force: bool = typer.Option(
-        False, "--force", "-f", help="Overwrite challenge files already on disk"
+        False,
+        "--force",
+        "-f",
+        help=(
+            "Overwrite challenge files already on disk, and answer the "
+            "--replace confirmation"
+        ),
     ),
     replace: bool = typer.Option(
         False,
@@ -88,7 +94,9 @@ def export_(destination: Path = typer.Argument(Path("pwnv-export.json"))) -> Non
 @config_exists()
 def import_(
     source: Path,
-    force: bool = typer.Option(False, "--force", "-f"),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Answer the --replace confirmation"
+    ),
     replace: bool = typer.Option(
         False,
         "--replace",
