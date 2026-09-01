@@ -32,9 +32,20 @@ dev = [
   "pytest",
 ]
 
+[project.optional-dependencies]
+# An extra rather than a dependency group: Read the Docs installs the project
+# with pip, which understands extras but not PEP 735 groups.
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.26",
+]
+
 [project.urls]
+Homepage = "https://github.com/CarixoHD/pwnv/"
+Documentation = "https://pwnv.readthedocs.io"
 Repository = "https://github.com/CarixoHD/pwnv/"
 Issues = "https://github.com/CarixoHD/pwnv/issues"
+Changelog = "https://github.com/CarixoHD/pwnv/releases"
 
 [tool.ruff]
 # Bundled templates are rendered, not imported; they hold placeholders.
