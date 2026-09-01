@@ -13,6 +13,13 @@ _PWNV_CONFIG_BASE_DIR = get_config_path().parent
 _PLUGINS_ROOT = _PWNV_CONFIG_BASE_DIR / DEFAULT_PLUGINS_FOLDER_NAME
 _PLUGIN_REGISTRY: List[Type[ChallengePlugin]] = []
 
+_PLUGIN_MODULE_PREFIX = "pwnv_plugins"
+
+
+def plugin_name(plugin) -> str:
+    """Return the plugin's user-facing name (its file stem)."""
+    return plugin.__module__.rpartition(".")[2]
+
 
 def register_plugin(cls: Type[ChallengePlugin]) -> Type[ChallengePlugin]:
     if cls not in _PLUGIN_REGISTRY:
@@ -29,12 +36,17 @@ class PluginManager:
     def _import_plugin_module(self, module_path: Path) -> None:
         from pwnv.utils.ui import error
 
+        module_name = f"{_PLUGIN_MODULE_PREFIX}.{module_path.stem}"
         try:
-            spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
             if spec and spec.loader:
                 mod = importlib.util.module_from_spec(spec)
-                sys.modules[module_path.stem] = mod
-                spec.loader.exec_module(mod)
+                sys.modules[module_name] = mod
+                try:
+                    spec.loader.exec_module(mod)
+                except Exception:
+                    sys.modules.pop(module_name, None)
+                    raise
         except Exception as e:
             error(f"Failed to load plugin module {module_path.name}: {e}")
 
@@ -69,7 +81,7 @@ class PluginManager:
         self.discover_and_load_plugins()
         plugin_name_lower = name.lower()
         for plugin in self.get_all_plugins():
-            if plugin.__module__.lower() == plugin_name_lower:
+            if plugin_name(plugin).lower() == plugin_name_lower:
                 return plugin
         return None
 

@@ -1,8 +1,48 @@
 """Helpers for resolving explicit or interactive CLI selections."""
 
-from typing import Sequence
+from typing import List, Sequence
 
 from pwnv.models import Challenge
+
+
+def _narrow_to_likeliest(matches: List[Challenge]) -> List[Challenge]:
+    """
+    Drop matches you almost certainly did not mean.
+
+    Names collide constantly across CTFs - every event has a "sanity" and half
+    of them have a "baby rop". The CTF you are standing in wins, then running
+    CTFs, and only a genuine tie reaches the picker.
+    """
+    from pwnv.utils.crud import get_current_ctf, get_running_ctfs
+
+    if len(matches) < 2:
+        return matches
+
+    current = get_current_ctf()
+    if current and (local := [ch for ch in matches if ch.ctf_id == current.id]):
+        return local
+
+    running = {ctf.id for ctf in get_running_ctfs()}
+    return [ch for ch in matches if ch.ctf_id in running] or matches
+
+
+def _matching(scope: Sequence[Challenge], name: str) -> List[Challenge]:
+    """Find challenges called ``name``, loosening the comparison as needed."""
+    from pwnv.utils.remote import sanitize
+
+    needle = name.strip()
+    folded = needle.casefold()
+    slug = sanitize(needle)
+
+    for candidates in (
+        [ch for ch in scope if ch.name == needle],
+        [ch for ch in scope if ch.name.casefold() == folded],
+        [ch for ch in scope if sanitize(ch.name) == slug],
+        [ch for ch in scope if folded in ch.name.casefold()],
+    ):
+        if candidates:
+            return candidates
+    return []
 
 
 def resolve_challenge(
@@ -37,14 +77,16 @@ def resolve_challenge(
         scope = [ch for ch in scope if ch.ctf_id == selected_ctf.id]
 
     if challenge_name:
-        matches = [ch for ch in scope if ch.name == challenge_name]
+        matches = _matching(scope, challenge_name)
         if not matches:
             error(f"Challenge '{challenge_name}' does not exist in the selected scope.")
             raise typer.Exit(code=1)
-        if len(matches) > 1:
-            error("Challenge name is ambiguous; add --ctf to select one CTF.")
-            raise typer.Exit(code=1)
-        return matches[0]
+        matches = _narrow_to_likeliest(matches)
+        if len(matches) == 1:
+            return matches[0]
+        return prompt_challenge_selection(
+            matches, f"Multiple challenges match '{challenge_name}':"
+        )
 
     current = get_current_challenge()
     if current in scope:

@@ -15,16 +15,16 @@ authors = [
 keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf", "tool", "workspace", "automation", "workflow", "challenges"]
 requires-python = ">=3.12"
 dependencies = [
-    "ctfbridge>=0.8.9",
-    "dotenv>=0.9.9",
+    "ctfbridge>=0.8.10",
     "filelock>=3.18.0",
-    "inquirer>=3.4.0",
     "inquirerpy>=0.3.4",
     "pydantic>=2.10.3",
+    "python-dotenv>=1.0.1",
+    "rich>=13.7.0",
     "typer>=0.15.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
   "mypy",
   "ruff",
@@ -37,7 +37,8 @@ Repository = "https://github.com/CarixoHD/pwnv/"
 Issues = "https://github.com/CarixoHD/pwnv/issues"
 
 [tool.ruff]
-exclude = ["pwnv/templates"]
+# Bundled templates are rendered, not imported; they hold placeholders.
+exclude = ["pwnv/examples/templates"]
 
 [tool.ruff.lint]
 select = ["F", "E", "I"]
@@ -50,13 +51,21 @@ pwnv = "pwnv:main"
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.package-data]
+pwnv = ["examples/**/*"]
+
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "no-local-version"
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["plugin_examples*", "tests*"]
+exclude = ["tests*"]
+
+[tool.mypy]
+# Templates are rendered into challenge directories, not imported; they refer to
+# names that only exist after `from pwn import *` runs in the CTF environment.
+exclude = ["pwnv/examples/templates/"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

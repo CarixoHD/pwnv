@@ -4,14 +4,9 @@ from pathlib import Path
 
 import typer
 
-from pwnv.utils import challenges_exists, config_exists
+from pwnv.utils import challenges_exists, config_exists, venv_python
 
 app = typer.Typer(no_args_is_help=True, help="Manage a challenge's uv environment.")
-
-
-def _python_path(environment: Path) -> Path:
-    windows = environment / "Scripts" / "python.exe"
-    return windows if windows.exists() else environment / "bin" / "python"
 
 
 def _ensure_environment(challenge_path: Path) -> Path:
@@ -24,7 +19,7 @@ def _ensure_environment(challenge_path: Path) -> Path:
         error(f"{command('uv')} binary not found in PATH.")
         raise typer.Exit(code=1)
     environment = challenge_path / ".venv"
-    if not _python_path(environment).exists():
+    if not venv_python(environment).exists():
         result = subprocess.run(["uv", "venv", str(environment)], check=False)
         if result.returncode:
             error("Failed to create the challenge environment.")
@@ -48,7 +43,7 @@ def add(
     challenge = resolve_challenge(challenge_name=challenge_name, ctf_name=ctf)
     environment = _ensure_environment(challenge.path)
     result = subprocess.run(
-        ["uv", "pip", "install", "--python", str(_python_path(environment)), *packages],
+        ["uv", "pip", "install", "--python", str(venv_python(environment)), *packages],
         cwd=challenge.path,
         check=False,
     )
@@ -79,7 +74,7 @@ def run(
         raise typer.Exit(code=1)
     challenge = resolve_challenge(challenge_name=challenge_name, ctf_name=ctf)
     environment = _ensure_environment(challenge.path)
-    bin_path = _python_path(environment).parent
+    bin_path = venv_python(environment).parent
     process_env = os.environ.copy()
     process_env["VIRTUAL_ENV"] = str(environment)
     process_env["PATH"] = os.pathsep.join([str(bin_path), process_env.get("PATH", "")])

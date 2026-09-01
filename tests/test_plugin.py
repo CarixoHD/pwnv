@@ -20,7 +20,7 @@ def test_plugin_selection(tmp_path, monkeypatch):
     plugin, manager = _reload_modules()
 
     root = Path(__file__).resolve().parents[1]
-    plugin_src = root / "plugin_examples" / "plugins" / "pwn_example.py"
+    plugin_src = root / "pwnv" / "examples" / "plugins" / "pwn_example.py"
     dest_dir = plugin.get_plugins_directory()
     shutil.copy(plugin_src, dest_dir / plugin_src.name)
 

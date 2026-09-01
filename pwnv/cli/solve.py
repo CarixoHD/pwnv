@@ -96,22 +96,22 @@ def solve(
         prompt="Select a challenge:",
     )
 
-    challenge.solved = Solved.solved
     if not flag:
         flag = prompt_text("Enter the flag:")
 
-    if flag:
-        challenge.flag = flag
-
     parent_ctf = get_ctf_by_challenge(challenge)
     result = "local"
+    accepted = True
     if parent_ctf and parent_ctf.url:
         accepted = asyncio.run(
             remote_solve(challenge=challenge, ctf=parent_ctf, flag=flag)
         )
         result = "accepted" if accepted else "rejected-or-failed"
-        if not accepted:
-            warn("Remote submission failed or was rejected; keeping local solve state.")
+
+    if accepted:
+        challenge.solved = Solved.solved
+        if flag:
+            challenge.flag = flag
 
     extras = dict(challenge.extras or {})
     attempts = list(extras.get("flag_history", []))
@@ -124,6 +124,15 @@ def solve(
     )
     extras["flag_history"] = attempts
     challenge.extras = extras
+
+    if not accepted:
+        update_challenge(challenge)
+        warn(
+            f"[cyan]{challenge.name}[/] was NOT marked as solved - "
+            "the platform rejected the flag or the submission failed."
+        )
+        raise typer.Exit(code=1)
+
     raw = tags if tags is not None else prompt_text("Enter tags (comma-separated):")
     if raw:
         parsed_tags = {t.strip().lower() for t in raw.split(",") if t.strip()}

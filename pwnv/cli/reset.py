@@ -4,7 +4,11 @@ from pathlib import Path
 
 import typer
 
-from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
+from pwnv.constants import (
+    DEFAULT_PLUGINS_FOLDER_NAME,
+    DEFAULT_PWNVENV_FOLDER_NAME,
+    DEFAULT_TEMPLATES_FOLDER_NAME,
+)
 from pwnv.utils import (
     command,
     config_exists,
@@ -87,11 +91,32 @@ def reset(
     else:
         info("No CTF files found - nothing to remove.")
 
-    if cfg_path.parent.exists():
-        shutil.rmtree(cfg_path.parent)
-        success(f"Removed {cfg_path.parent} config directory")
-    else:
-        info("No config path found - nothing to remove.")
+    removed_any = False
+    for folder in (
+        cfg_path.parent / DEFAULT_PLUGINS_FOLDER_NAME,
+        cfg_path.parent / DEFAULT_TEMPLATES_FOLDER_NAME,
+    ):
+        if folder.is_dir():
+            shutil.rmtree(folder)
+            success(f"Removed {folder}")
+            removed_any = True
+
+    if cfg_path.exists():
+        cfg_path.unlink()
+        success(f"Removed {cfg_path}")
+        removed_any = True
+
+    lock_file = cfg_path.with_name(cfg_path.name + ".lock")
+    if lock_file.exists():
+        lock_file.unlink()
+
+    if not removed_any:
+        info("No config files found - nothing to remove.")
+
+    parent = cfg_path.parent
+    if parent.is_dir() and not any(parent.iterdir()) and parent.name == "pwnv":
+        parent.rmdir()
+        success(f"Removed empty {parent} config directory")
 
     success("Workspace reset complete!")
     info(f"Run {command('pwnv init')} to bootstrap a fresh environment.")

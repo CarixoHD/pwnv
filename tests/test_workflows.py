@@ -44,9 +44,9 @@ def test_explicit_ctf_sync_skips_selector(monkeypatch):
     utils.update_ctf(ctf)
     synced = []
 
-    def _sync(selected):
+    def _sync(selected, **kwargs):
         synced.append(selected)
-        return True
+        return {"added": [], "updated": [], "unchanged": 0}
 
     monkeypatch.setattr(utils, "sync_remote_ctf", _sync)
 

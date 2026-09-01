@@ -1,8 +1,62 @@
 {
     "name": "pwnv",
-    "image": "ghcr.io/astral-sh/uv:python3.13-bookworm",
-    "postCreateCommand": "pip install -e .",
+    "image": "ghcr.io/astral-sh/uv:0.12.8-python3.13-trixie",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        },
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    },
+    "mounts": [
+        "source=pwnv-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
+        "source=pwnv-uv-cache,target=/root/.cache/uv,type=volume",
+        "source=pwnv-claude,target=/root/.claude,type=volume",
+        "source=pwnv-codex,target=/root/.codex,type=volume"
+    ],
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
     "containerEnv": {
-        "SHELL": "/bin/bash"
+        "PWNV_CONFIG": "${containerWorkspaceFolder}/.pwnv/pwnv_config.json",
+        "SHELL": "/bin/bash",
+        "UV_LINK_MODE": "copy",
+        "UV_COMPILE_BYTECODE": "1"
+    },
+    "remoteEnv": {
+        "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerEnv:PATH}",
+        "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "openai.chatgpt",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.debugpy",
+                "ms-python.vscode-python-envs",
+                "ms-python.mypy-type-checker",
+                "charliermarsh.ruff",
+                "tamasfe.even-better-toml"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+                "python.useEnvironmentsExtension": true,
+                "python-envs.alwaysUseUv": true,
+                "python.testing.pytestEnabled": true,
+                "python.testing.pytestArgs": [
+                    "tests"
+                ],
+                "python.testing.unittestEnabled": false,
+                "ruff.importStrategy": "fromEnvironment",
+                "mypy-type-checker.importStrategy": "fromEnvironment",
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true
+                },
+                "[toml]": {
+                    "editor.defaultFormatter": "tamasfe.even-better-toml"
+                }
+            }
+        }
     }
 }

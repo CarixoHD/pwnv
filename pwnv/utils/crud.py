@@ -57,14 +57,16 @@ def get_tags() -> Set[str]:
     return set(load_config().get("challenge_tags", []))
 
 
-def get_current_ctf(path: Path = Path.cwd()) -> CTF | None:
+def get_current_ctf(path: Path | None = None) -> CTF | None:
+    path = path or Path.cwd()
     for ctf in get_ctfs():
         if path.is_relative_to(ctf.path):
             return ctf
     return None
 
 
-def get_current_challenge(path: Path = Path.cwd()) -> Challenge | None:
+def get_current_challenge(path: Path | None = None) -> Challenge | None:
+    path = path or Path.cwd()
     for ch in get_challenges():
         if path.is_relative_to(ch.path):
             return ch
@@ -148,72 +150,66 @@ def get_ctf_by_name(name: str) -> CTF | None:
 
 # [CREATE]
 def add_ctf(ctf: CTF) -> None:
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    cfg.setdefault("ctfs", []).append(ctf.model_dump())
-    save_config(cfg)
+    with config_transaction() as cfg:
+        cfg.setdefault("ctfs", []).append(ctf.model_dump())
     ctf.path.mkdir(parents=True, exist_ok=True)
 
 
 def add_challenge(ch: Challenge) -> None:
     from pwnv.core.setup import Core
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    cfg.setdefault("challenges", []).append(ch.model_dump())
-    save_config(cfg)
+    with config_transaction() as cfg:
+        cfg.setdefault("challenges", []).append(ch.model_dump())
     ch.path.mkdir(parents=True, exist_ok=True)
     Core(ch)
 
 
 def add_tags(tags: set[str]) -> None:
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    cfg["challenge_tags"] = list(
-        set(cfg.get("challenge_tags", [])) | {t.lower() for t in tags}
-    )
-    save_config(cfg)
+    with config_transaction() as cfg:
+        cfg["challenge_tags"] = sorted(
+            set(cfg.get("challenge_tags", [])) | {t.lower() for t in tags}
+        )
 
 
 # [UPDATE]
 def update_ctf(ctf: CTF) -> None:
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    ctfs = cfg.setdefault("ctfs", [])
-    for idx, c in enumerate(ctfs):
-        if c["id"] == str(ctf.id):
-            ctfs[idx] = ctf.model_dump()
-            break
-    save_config(cfg)
+    with config_transaction() as cfg:
+        ctfs = cfg.setdefault("ctfs", [])
+        for idx, c in enumerate(ctfs):
+            if c["id"] == str(ctf.id):
+                ctfs[idx] = ctf.model_dump()
+                break
 
 
 def update_challenge(ch: Challenge) -> None:
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    challenges = cfg.setdefault("challenges", [])
-    for idx, item in enumerate(challenges):
-        if item["id"] == str(ch.id):
-            challenges[idx] = ch.model_dump()
-            break
-    save_config(cfg)
+    with config_transaction() as cfg:
+        challenges = cfg.setdefault("challenges", [])
+        for idx, item in enumerate(challenges):
+            if item["id"] == str(ch.id):
+                challenges[idx] = ch.model_dump()
+                break
 
 
 # [DELETE]
 def remove_ctf(ctf: CTF) -> None:
     import shutil
 
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    cfg["ctfs"] = [c for c in cfg.get("ctfs", []) if c["id"] != str(ctf.id)]
-    cfg["challenges"] = [
-        ch for ch in cfg.get("challenges", []) if ch["ctf_id"] != str(ctf.id)
-    ]
-    save_config(cfg)
+    with config_transaction() as cfg:
+        cfg["ctfs"] = [c for c in cfg.get("ctfs", []) if c["id"] != str(ctf.id)]
+        cfg["challenges"] = [
+            ch for ch in cfg.get("challenges", []) if ch["ctf_id"] != str(ctf.id)
+        ]
     if ctf.path.exists():
         shutil.rmtree(ctf.path)
 
@@ -221,13 +217,12 @@ def remove_ctf(ctf: CTF) -> None:
 def remove_challenge(ch: Challenge) -> None:
     import shutil
 
-    from pwnv.utils.config import load_config, save_config
+    from pwnv.utils.config import config_transaction
 
-    cfg = load_config()
-    cfg["challenges"] = [
-        item for item in cfg.get("challenges", []) if item["id"] != str(ch.id)
-    ]
-    save_config(cfg)
+    with config_transaction() as cfg:
+        cfg["challenges"] = [
+            item for item in cfg.get("challenges", []) if item["id"] != str(ch.id)
+        ]
     if ch.path.exists():
         shutil.rmtree(ch.path)
 

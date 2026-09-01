@@ -1,8 +1,60 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from collections.abc import Generator
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List
 
 from pwnv.models import Challenge
 from pwnv.models.challenge import Category
+
+
+@dataclass
+class TemplateWriteReport:
+    """What a run of ``create_template`` actually did on disk."""
+
+    written: List[Path] = field(default_factory=list)
+    skipped: List[Path] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class _WritePolicy:
+    force: bool = False
+    suffix: str = ""
+    report: TemplateWriteReport | None = None
+
+
+_policy = _WritePolicy()
+
+
+@contextmanager
+def template_write_policy(
+    *, force: bool = False, suffix: str = ""
+) -> Generator[TemplateWriteReport]:
+    """
+    Control how templates are written for the duration of the block.
+
+    The policy lives here instead of in ``create_template``'s signature so it
+    also applies to plugins that override ``create_template``: every plugin
+    ultimately writes through :meth:`ChallengePlugin._write_template`.
+    """
+    global _policy
+
+    previous = _policy
+    report = TemplateWriteReport()
+    _policy = _WritePolicy(force=force, suffix=suffix, report=report)
+    try:
+        yield report
+    finally:
+        _policy = previous
+
+
+def _apply_suffix(filename: str, suffix: str) -> str:
+    """Insert ``suffix`` before the extension, so ``solve.py`` -> ``solve_pwn.py``."""
+    if not suffix:
+        return filename
+    stem, dot, extension = filename.rpartition(".")
+    return f"{stem}{suffix}{dot}{extension}" if dot else f"{filename}{suffix}"
 
 
 class ChallengePlugin(ABC):
@@ -34,11 +86,20 @@ class ChallengePlugin(ABC):
 
         try:
             text = self._load_template(template_filename)
-            text = render_template(text, challenge)
-            dest_path = challenge.path / destination_filename
-            dest_path.write_text(text)
         except FileNotFoundError:
             info(
                 f"Template file '{template_filename}' not found for category "
                 f"'{self.category().name}'. Skipping."
             )
+            return
+
+        dest_path = challenge.path / _apply_suffix(destination_filename, _policy.suffix)
+        if dest_path.exists() and not _policy.force:
+            if _policy.report is not None:
+                _policy.report.skipped.append(dest_path)
+            return
+
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        dest_path.write_text(render_template(text, challenge), encoding="utf-8")
+        if _policy.report is not None:
+            _policy.report.written.append(dest_path)

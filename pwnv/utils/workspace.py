@@ -7,6 +7,13 @@ from pathlib import Path
 from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
 from pwnv.models import Init
 
+_VENV_DIR_NAMES = (DEFAULT_PWNVENV_FOLDER_NAME, ".venv")
+
+
+def _is_virtualenv_artifact(path: Path) -> bool:
+    """Return ``True`` if ``path`` lives inside a generated virtualenv."""
+    return any(name in path.parts for name in _VENV_DIR_NAMES)
+
 
 def backup_workspace(destination: Path) -> Path:
     """Create a complete ``tar.gz`` backup and return its final path."""
@@ -24,7 +31,7 @@ def backup_workspace(destination: Path) -> Path:
         for path in ctfs_path.rglob("*"):
             if path.resolve() == destination:
                 continue
-            if DEFAULT_PWNVENV_FOLDER_NAME in path.parts:
+            if _is_virtualenv_artifact(path):
                 continue
             archive.add(
                 path,
@@ -56,16 +63,24 @@ def export_workspace(destination: Path) -> Path:
     return destination
 
 
-def import_workspace(source: Path) -> None:
-    """Import metadata, rebasing all workspace paths to the current CTF root."""
-    from pwnv.utils.config import get_ctfs_path, save_config
+def import_workspace(source: Path, *, replace: bool = False) -> dict[str, int]:
+    """
+    Import metadata, rebasing all workspace paths to the current CTF root.
+
+    By default the import is *merged* into the current workspace: CTFs and
+    challenges already present are left alone and only new records are added,
+    so importing a teammate's export cannot discard your own solves. Pass
+    ``replace=True`` for the previous behaviour of overwriting everything.
+
+    Returns a summary of how many records were added and skipped.
+    """
+    from pwnv.utils.config import config_transaction, get_ctfs_path
+    from pwnv.utils.remote import sanitize
 
     data = json.loads(source.expanduser().resolve().read_text(encoding="utf-8"))
     imported = Init.model_validate(data)
     ctfs_path = get_ctfs_path().resolve()
-    ctf_paths = {}
-
-    from pwnv.utils.remote import sanitize
+    ctf_paths: dict = {}
 
     for ctf in imported.ctfs:
         if ctf is None:
@@ -85,4 +100,58 @@ def import_workspace(source: Path) -> None:
         challenge.path.mkdir(parents=True, exist_ok=True)
 
     imported.ctfs_path = ctfs_path
-    save_config(imported.model_dump())
+    summary = {
+        "ctfs_added": 0,
+        "ctfs_skipped": 0,
+        "challenges_added": 0,
+        "challenges_skipped": 0,
+    }
+
+    if replace:
+        from pwnv.utils.config import save_config
+
+        payload = imported.model_dump()
+        summary["ctfs_added"] = len(payload.get("ctfs", []))
+        summary["challenges_added"] = len(payload.get("challenges", []))
+        save_config(payload)
+        return summary
+
+    incoming = imported.model_dump()
+    with config_transaction() as cfg:
+        existing_ctfs = cfg.setdefault("ctfs", [])
+        existing_challenges = cfg.setdefault("challenges", [])
+        known_ctf_ids = {str(item["id"]) for item in existing_ctfs}
+        known_ctf_names = {item["name"] for item in existing_ctfs}
+        known_challenge_ids = {str(item["id"]) for item in existing_challenges}
+        known_challenge_paths = {str(item["path"]) for item in existing_challenges}
+
+        for ctf_data in incoming.get("ctfs", []):
+            if (
+                str(ctf_data["id"]) in known_ctf_ids
+                or ctf_data["name"] in known_ctf_names
+            ):
+                summary["ctfs_skipped"] += 1
+                continue
+            existing_ctfs.append(ctf_data)
+            known_ctf_ids.add(str(ctf_data["id"]))
+            known_ctf_names.add(ctf_data["name"])
+            summary["ctfs_added"] += 1
+
+        for challenge_data in incoming.get("challenges", []):
+            if (
+                str(challenge_data["id"]) in known_challenge_ids
+                or str(challenge_data["path"]) in known_challenge_paths
+                or str(challenge_data["ctf_id"]) not in known_ctf_ids
+            ):
+                summary["challenges_skipped"] += 1
+                continue
+            existing_challenges.append(challenge_data)
+            known_challenge_ids.add(str(challenge_data["id"]))
+            known_challenge_paths.add(str(challenge_data["path"]))
+            summary["challenges_added"] += 1
+
+        cfg["challenge_tags"] = sorted(
+            set(cfg.get("challenge_tags", [])) | set(incoming.get("challenge_tags", []))
+        )
+
+    return summary

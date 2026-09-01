@@ -98,6 +98,7 @@ def remove(
         None, "--challenge", help="Challenge name (skips selection)"
     ),
     ctf: str | None = typer.Option(None, "--ctf", help="Limit selection to one CTF"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt"),
 ) -> None:
     """Removes an existing challenge from a CTF."""
     from pwnv.utils import (
@@ -133,7 +134,7 @@ def remove(
         else prompt_challenge_selection(challenges, "Select a challenge to remove:")
     )
 
-    if challenge.path.exists() and any(challenge.path.iterdir()):
+    if not yes and challenge.path.exists() and any(challenge.path.iterdir()):
         if not prompt_confirm("Directory not empty. Remove anyway?", default=False):
             return
 
@@ -276,19 +277,158 @@ def search(
         raise typer.Exit(code=1)
 
     challenges = challenges_for_ctf(selected_ctf) if selected_ctf else get_challenges()
-    matches = search_challenges(
-        query,
-        challenges,
-        category=category,
-        tags=tag,
-        min_points=min_points,
-        max_points=max_points,
-        has_service=has_service,
-        solved=solved,
-    )
+    filters = (category, tag, min_points, max_points, has_service, solved)
+    if not query and not any(value is not None and value != [] for value in filters):
+        # A bare `search --ctf X` used to return nothing, because the underlying
+        # helper treats "no query and no filter" as an empty result. Naming a
+        # scope is itself a request to see it.
+        matches = list(challenges)
+    else:
+        matches = search_challenges(
+            query,
+            challenges,
+            category=category,
+            tags=tag,
+            min_points=min_points,
+            max_points=max_points,
+            has_service=has_service,
+            solved=solved,
+        )
     if not matches:
         warn(f"No challenges match '{query or 'the selected filters'}'.")
         return
 
     for challenge in matches:
         show_challenge(challenge)
+
+
+@app.command()
+@config_exists()
+@challenges_exists()
+def scaffold(
+    challenge_name: str | None = typer.Option(
+        None, "--challenge", help="Challenge name (skips selection)"
+    ),
+    ctf: str | None = typer.Option(None, "--ctf", help="Limit selection to one CTF"),
+    category: str | None = typer.Option(
+        None,
+        "--category",
+        help="Template category to apply (defaults to the challenge's own)",
+    ),
+    plugin: str | None = typer.Option(
+        None, "--plugin", help="Apply a specific plugin by name"
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite files that already exist"
+    ),
+    suffix: str = typer.Option(
+        "",
+        "--suffix",
+        help="Append to every written filename, e.g. --suffix _pwn -> solve_pwn.py",
+    ),
+) -> None:
+    """
+    Re-run a plugin's template and setup for an existing challenge.
+
+    The plugin is chosen independently of the challenge, so you can drop the pwn
+    template into a web challenge. Nothing about the challenge itself changes.
+    """
+    from pwnv.core.plugin_manager import plugin_manager
+    from pwnv.models.challenge import Category
+    from pwnv.plugins import template_write_policy
+    from pwnv.utils import (
+        error,
+        get_selected_plugin_for_category,
+        info,
+        prompt_category_selection,
+        resolve_challenge,
+        success,
+        warn,
+    )
+
+    challenge = resolve_challenge(
+        challenge_name=challenge_name,
+        ctf_name=ctf,
+        prompt="Select a challenge to scaffold:",
+    )
+
+    if plugin and category:
+        error("--plugin and --category cannot be combined.")
+        raise typer.Exit(code=1)
+
+    if plugin:
+        chosen_plugin = plugin_manager.get_plugin_by_name(plugin)
+        if chosen_plugin is None:
+            error(f"No plugin named '{plugin}'. See `pwnv plugin list`.")
+            raise typer.Exit(code=1)
+    else:
+        if category:
+            try:
+                chosen_category = Category[category.lower()]
+            except KeyError:
+                choices = ", ".join(item.name for item in Category)
+                error(f"Unknown category '{category}'. Choose one of: {choices}.")
+                raise typer.Exit(code=1)
+        else:
+            chosen_category = prompt_category_selection(default=challenge.category)
+
+        chosen_plugin = get_selected_plugin_for_category(chosen_category)
+        if chosen_plugin is None:
+            error(
+                f"No plugin selected for category '{chosen_category.name}'. "
+                "Use `pwnv plugin select` to choose one."
+            )
+            raise typer.Exit(code=1)
+
+    challenge.path.mkdir(parents=True, exist_ok=True)
+
+    with template_write_policy(force=force, suffix=suffix) as report:
+        chosen_plugin.create_template(challenge)
+
+    for path in report.written:
+        success(f"wrote [cyan]{path.name}[/]")
+    if report.skipped:
+        names = ", ".join(path.name for path in report.skipped)
+        warn(
+            f"{names} already exists - left untouched. "
+            "Use --force to overwrite, or --suffix to write alongside it."
+        )
+
+    try:
+        chosen_plugin.logic(challenge)
+    except Exception as exc:
+        # A plugin run outside its own category can hit assumptions that do not
+        # hold, e.g. a pwn plugin looking for a binary in a web challenge.
+        warn(f"Plugin logic failed for {challenge.name}: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if not report.written and not report.skipped:
+        info(f"{challenge.name} scaffolded, but the plugin wrote no templates.")
+    else:
+        success(f"[cyan]{challenge.name}[/] scaffolded.")
+
+
+@app.command(name="path")
+@config_exists()
+@challenges_exists()
+def path_(
+    challenge_name: str | None = typer.Argument(
+        None, help="Challenge name (fuzzy selection when omitted)"
+    ),
+    ctf: str | None = typer.Option(None, "--ctf", help="Limit selection to one CTF"),
+) -> None:
+    """
+    Print a challenge directory and nothing else.
+
+    Built for `cd "$(pwnv challenge path baby-rop)"`; see `pwnv shell-init` for
+    the `pwncd` wrapper.
+    """
+    from pwnv.utils import prompt_on_tty, resolve_challenge
+
+    with prompt_on_tty() as stdout:
+        challenge = resolve_challenge(
+            challenge_name=challenge_name,
+            ctf_name=ctf,
+            prompt="Select a challenge to enter:",
+        )
+        print(str(challenge.path), file=stdout)
