@@ -69,6 +69,8 @@ from pwnv.utils.serialize import (
 )
 from pwnv.utils.ui import (
     command,
+    debug_enabled,
+    debug_traceback,
     error,
     format_service,
     info,
@@ -166,6 +168,8 @@ __all__ = [
     "warn",
     "info",
     "command",
+    "debug_enabled",
+    "debug_traceback",
     "show_plugin",
     # plugin
     "get_bundled_examples_directory",

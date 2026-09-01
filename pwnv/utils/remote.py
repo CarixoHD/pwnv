@@ -341,9 +341,10 @@ async def get_remote_credential_methods(
     try:
         client: Any = await create_client(url=url)
     except Exception:
-        from pwnv.utils.ui import error
+        from pwnv.utils.ui import debug_traceback, error
 
         error("Failed to get client.")
+        debug_traceback()
         return None, None
     methods = await client.auth.get_supported_auth_methods()
     return client, methods
@@ -360,9 +361,10 @@ async def create_remote_session(
         await client.session.save(str(ctf.path / ".session"))
         return True
     except Exception:
-        from pwnv.utils.ui import error
+        from pwnv.utils.ui import debug_traceback, error
 
         error("Failed to authenticate with the provided credentials.")
+        debug_traceback()
         return False
 
 
@@ -373,9 +375,10 @@ async def get_remote_challenges(client: Any, ctf: CTF):
         challenges = await client.challenges.get_all()
         return challenges
     except Exception:
-        from pwnv.utils.ui import error
+        from pwnv.utils.ui import debug_traceback, error
 
         error("Failed to fetch challenges.")
+        debug_traceback()
         return None
 
 
@@ -522,7 +525,10 @@ async def add_remote_challenges(
             try:
                 ch = await client.attachments.download_all(ch, save_dir=path)
             except Exception:
+                from pwnv.utils.ui import debug_traceback
+
                 warn(f"Skipped attachments for {name}")
+                debug_traceback()
             attachments = _fingerprint_attachments(
                 getattr(ch, "attachments", None) or []
             )
@@ -650,7 +656,8 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
         except Exception:
             pass
 
-    from pwnv.utils.ui import error
+    from pwnv.utils.ui import debug_traceback, error
 
     error(f"Failed to submit flag '{flag}'.")
+    debug_traceback()
     return False

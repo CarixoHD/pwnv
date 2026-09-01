@@ -228,3 +228,32 @@ def test_add_remote_ctf_fails_when_credentials_missing(monkeypatch, isolated_con
     added = add_remote_ctf(ctf)
     assert added is False
     assert not ctf_path.exists()
+
+
+@pytest.mark.parametrize(
+    ("value", "shown"),
+    [("1", True), ("0", False), ("", False)],
+)
+def test_pwnv_debug_decides_whether_the_traceback_is_printed(
+    monkeypatch, capsys, value, shown
+):
+    """The sentence is for an event, the traceback is for a bug report."""
+    from pwnv.utils import debug_traceback
+
+    monkeypatch.setenv("PWNV_DEBUG", value)
+    try:
+        raise RuntimeError("the underlying reason")
+    except RuntimeError:
+        debug_traceback()
+
+    assert ("the underlying reason" in capsys.readouterr().err) is shown
+
+
+def test_the_traceback_is_skipped_when_nothing_was_raised(monkeypatch, capsys):
+    """Called outside a handler it must print nothing, not `NoneType: None`."""
+    from pwnv.utils import debug_traceback
+
+    monkeypatch.setenv("PWNV_DEBUG", "1")
+    debug_traceback()
+
+    assert capsys.readouterr().err == ""
