@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 
+from pwnv.cli.options import JSON
 from pwnv.models import CTF
 from pwnv.utils import (
     config_exists,
@@ -125,9 +126,12 @@ def remove(
 @ctfs_exists()
 def info_(
     ctf: str | None = typer.Option(None, "--ctf", help="CTF name (skips selection)"),
+    json_output: bool = JSON,
 ) -> None:
     """Displays detailed information about a selected CTF."""
     from pwnv.utils import (
+        ctfs_payload,
+        emit_json,
         error,
         get_ctf_by_name,
         get_ctfs,
@@ -136,11 +140,17 @@ def info_(
         show_ctf,
     )
 
-    if ctf:
-        chosen_ctf = get_ctf_by_name(ctf)
-        if chosen_ctf is None:
-            error(f"CTF '{ctf}' does not exist.")
-            raise typer.Exit(code=1)
+    chosen_ctf = get_ctf_by_name(ctf) if ctf else None
+    if ctf and chosen_ctf is None:
+        error(f"CTF '{ctf}' does not exist.")
+        raise typer.Exit(code=1)
+
+    if json_output:
+        # Without a name to go on, report every CTF rather than prompt.
+        emit_json({"ctfs": ctfs_payload([chosen_ctf] if chosen_ctf else get_ctfs())})
+        return
+
+    if chosen_ctf:
         show_ctf(chosen_ctf)
         return
 

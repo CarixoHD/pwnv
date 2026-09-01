@@ -41,6 +41,104 @@ def backup_workspace(destination: Path) -> Path:
     return destination
 
 
+def restore_workspace(
+    source: Path, *, replace: bool = False, force: bool = False
+) -> dict[str, int]:
+    """
+    Restore a ``workspace backup`` archive into the current workspace.
+    """
+    import tempfile
+
+    from pwnv.utils.config import get_ctfs_path
+
+    source = source.expanduser().resolve()
+    if not source.is_file():
+        raise FileNotFoundError(f"No backup archive at {source}.")
+
+    destination_root = get_ctfs_path().resolve()
+    with tempfile.TemporaryDirectory() as workdir:
+        staged = Path(workdir)
+        with tarfile.open(source, "r:gz") as archive:
+            archive.extractall(staged, filter="data")
+
+        config_file = next(iter(sorted((staged / "config").glob("*.json"))), None)
+        if config_file is None:
+            raise ValueError(
+                f"{source} does not look like a pwnv backup - it has no config "
+                "in it. `workspace import` reads the JSON exports instead."
+            )
+
+        data = json.loads(config_file.read_text(encoding="utf-8"))
+        imported = Init.model_validate(data)
+        source_root = Path(str(data.get("ctfs_path") or ""))
+        restored = _copy_tree(staged / "ctfs", destination_root, force=force)
+
+    _rebase_by_layout(imported, source_root, destination_root)
+    imported.ctfs_path = destination_root
+    summary = _merge_records(imported, replace=replace)
+    summary["files_restored"] = restored
+    return summary
+
+
+def _copy_tree(source_root: Path, destination_root: Path, *, force: bool) -> int:
+    """Copy the archived tree into place and report how many files landed."""
+    import shutil
+
+    if not source_root.is_dir():
+        return 0
+
+    restored = 0
+    destination_root.mkdir(parents=True, exist_ok=True)
+    for path in sorted(source_root.rglob("*")):
+        target = destination_root / path.relative_to(source_root)
+        if path.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        if target.exists() and not force:
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+        restored += 1
+    return restored
+
+
+def _rebase_by_layout(
+    imported: Init, source_root: Path, destination_root: Path
+) -> None:
+    """
+    Move every record to the same place under the new CTF root.
+    """
+    from pwnv.utils.remote import sanitize
+
+    ctf_paths: dict = {}
+    for ctf in imported.ctfs:
+        if ctf is None:
+            continue
+        ctf.path = _relocate(ctf.path, source_root, destination_root) or (
+            destination_root / sanitize(ctf.name)
+        )
+        ctf.path.mkdir(parents=True, exist_ok=True)
+        ctf_paths[ctf.id] = ctf.path
+
+    for challenge in imported.challenges:
+        if challenge is None or challenge.ctf_id not in ctf_paths:
+            continue
+        challenge.path = _relocate(challenge.path, source_root, destination_root) or (
+            ctf_paths[challenge.ctf_id]
+            / challenge.category.name
+            / sanitize(challenge.name)
+        )
+        challenge.path.mkdir(parents=True, exist_ok=True)
+
+
+def _relocate(path: Path, source_root: Path, destination_root: Path) -> Path | None:
+    """The same relative location under a different root, if there is one."""
+    try:
+        return destination_root / path.relative_to(source_root)
+    except ValueError:
+        return None
+
+
 def export_workspace(destination: Path) -> Path:
     """Export portable workspace metadata without challenge files or secrets."""
     import copy
@@ -74,14 +172,26 @@ def import_workspace(source: Path, *, replace: bool = False) -> dict[str, int]:
 
     Returns a summary of how many records were added and skipped.
     """
-    from pwnv.utils.config import config_transaction, get_ctfs_path
-    from pwnv.utils.remote import sanitize
+    from pwnv.utils.config import get_ctfs_path
 
     data = json.loads(source.expanduser().resolve().read_text(encoding="utf-8"))
     imported = Init.model_validate(data)
     ctfs_path = get_ctfs_path().resolve()
-    ctf_paths: dict = {}
+    _rebase_by_name(imported, ctfs_path)
+    imported.ctfs_path = ctfs_path
+    return _merge_records(imported, replace=replace)
 
+
+def _rebase_by_name(imported: Init, ctfs_path: Path) -> None:
+    """
+    Point every record at the directory its name implies under ``ctfs_path``.
+
+    An export carries no files, so there is no layout to preserve: the
+    directories are recreated from the names, exactly as ``pwnv ctf add`` would.
+    """
+    from pwnv.utils.remote import sanitize
+
+    ctf_paths: dict = {}
     for ctf in imported.ctfs:
         if ctf is None:
             continue
@@ -99,7 +209,11 @@ def import_workspace(source: Path, *, replace: bool = False) -> dict[str, int]:
         )
         challenge.path.mkdir(parents=True, exist_ok=True)
 
-    imported.ctfs_path = ctfs_path
+
+def _merge_records(imported: Init, *, replace: bool) -> dict[str, int]:
+    """Fold ``imported`` into the stored configuration, skipping duplicates."""
+    from pwnv.utils.config import config_transaction
+
     summary = {
         "ctfs_added": 0,
         "ctfs_skipped": 0,

@@ -2,6 +2,7 @@
 
 import typer
 
+from pwnv.cli.options import JSON
 from pwnv.utils import config_exists
 
 app = typer.Typer(no_args_is_help=True)
@@ -106,9 +107,7 @@ def status(
     limit: int = typer.Option(
         5, "--limit", min=1, help="Rows to show in the detail tables"
     ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Output machine-readable JSON"
-    ),
+    json_output: bool = JSON,
 ) -> None:
     """Show challenge and point progress for the workspace."""
     import json

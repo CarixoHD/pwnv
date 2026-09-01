@@ -1,5 +1,6 @@
 import typer
 
+from pwnv.cli.options import JSON
 from pwnv.utils import (
     config_exists,
     plugins_exists,
@@ -140,13 +141,15 @@ def remove() -> None:
 @app.command(name="info")
 @config_exists()
 @plugins_exists()
-def info_() -> None:
+def info_(json_output: bool = JSON) -> None:
     """
     Lists all available plugins and displays detailed information,
       including source code, for a selected plugin.
     """
     from pwnv.core import plugin_manager
     from pwnv.utils import (
+        emit_json,
+        plugins_payload,
         prompt_confirm,
         prompt_plugin_selection,
         show_plugin,
@@ -154,6 +157,13 @@ def info_() -> None:
     )
 
     plugins = plugin_manager.get_all_plugins()
+
+    if json_output:
+        # Every plugin at once: the rendered view exists to page through them
+        # one at a time, which a caller reading JSON does not need.
+        emit_json({"plugins": plugins_payload(plugins)})
+        return
+
     if not plugins:
         warn("No plugins found or loaded. Use 'pwnv plugin add' to create one.")
         return

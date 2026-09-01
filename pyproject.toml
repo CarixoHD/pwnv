@@ -67,6 +67,12 @@ exclude = ["tests*"]
 # names that only exist after `from pwn import *` runs in the CTF environment.
 exclude = ["pwnv/examples/templates/"]
 
+[[tool.mypy.overrides]]
+# pwntools lives in the CTF environment `pwnv init` builds, not in the
+# development environment, so scaffolded solve scripts import it at run time.
+module = ["pwn"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]

@@ -16,6 +16,22 @@ def _reload_modules(module_names: Iterable[str]) -> None:
             importlib.import_module(name)
 
 
+# Modules that cache the config path at import time, in dependency order.
+# `pwnv.core` comes last on purpose: it re-exports the plugin_manager singleton,
+# so reloading the submodule alone leaves every `from pwnv.core import
+# plugin_manager` caller holding the previous test's instance.
+_RELOADED_MODULES = (
+    "pwnv.utils.config",
+    "pwnv.utils.plugin",
+    "pwnv.utils.remote",
+    "pwnv.utils.crud",
+    "pwnv.utils.guards",
+    "pwnv.core.plugin_manager",
+    "pwnv.core.setup",
+    "pwnv.core",
+)
+
+
 @pytest.fixture(autouse=True)
 def isolated_config(monkeypatch, tmp_path):
     """
@@ -47,17 +63,7 @@ def isolated_config(monkeypatch, tmp_path):
     monkeypatch.delenv("PWNV_DEBUG", raising=False)
 
     # Reload modules that cache the config path at import time.
-    _reload_modules(
-        [
-            "pwnv.utils.config",
-            "pwnv.utils.plugin",
-            "pwnv.utils.remote",
-            "pwnv.utils.crud",
-            "pwnv.utils.guards",
-            "pwnv.core.plugin_manager",
-            "pwnv.core.setup",
-        ]
-    )
+    _reload_modules(_RELOADED_MODULES)
 
     yield cfg_path
 
@@ -76,16 +82,6 @@ def reload_pwnv_modules():
     """
 
     def _reload():
-        _reload_modules(
-            [
-                "pwnv.utils.config",
-                "pwnv.utils.plugin",
-                "pwnv.utils.remote",
-                "pwnv.utils.crud",
-                "pwnv.utils.guards",
-                "pwnv.core.plugin_manager",
-                "pwnv.core.setup",
-            ]
-        )
+        _reload_modules(_RELOADED_MODULES)
 
     return _reload

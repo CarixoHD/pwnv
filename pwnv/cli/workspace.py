@@ -27,6 +27,54 @@ def backup(
     success(f"Backup created at {backup_workspace(destination)}")
 
 
+@app.command()
+@config_exists()
+def restore(
+    source: Path,
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite challenge files already on disk"
+    ),
+    replace: bool = typer.Option(
+        False,
+        "--replace",
+        help="Discard the current metadata instead of merging into it",
+    ),
+) -> None:
+    """Restore a full backup archive: challenge files, notes, and credentials."""
+    from pwnv.utils import (
+        error,
+        get_challenges,
+        get_ctfs,
+        info,
+        prompt_confirm,
+        restore_workspace,
+        success,
+    )
+
+    if replace and (get_ctfs() or get_challenges()) and not force:
+        if not prompt_confirm(
+            "Discard the current workspace metadata and replace it?", default=False
+        ):
+            raise typer.Abort()
+
+    try:
+        summary = restore_workspace(source, replace=replace, force=force)
+    except (FileNotFoundError, ValueError) as exc:
+        error(str(exc))
+        raise typer.Exit(code=1) from exc
+
+    success(f"Workspace restored from {source}")
+    info(f"Copied {summary['files_restored']} file(s) into the CTF folder.")
+    if replace:
+        return
+    info(
+        f"Added {summary['ctfs_added']} CTFs and "
+        f"{summary['challenges_added']} challenges; "
+        f"skipped {summary['ctfs_skipped']} CTFs and "
+        f"{summary['challenges_skipped']} already present."
+    )
+
+
 @app.command(name="export")
 @config_exists()
 def export_(destination: Path = typer.Argument(Path("pwnv-export.json"))) -> None:

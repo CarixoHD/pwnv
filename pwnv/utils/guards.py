@@ -41,9 +41,12 @@ def challenges_exists():
 
 
 def plugins_exists():
-    from pwnv.core import plugin_manager
+    def _any_plugins() -> bool:
+        # Resolved per call rather than when the decorator is built: the manager
+        # is a singleton, and binding it at import time would pin the guard to
+        # whichever instance existed when the command module was first loaded.
+        from pwnv.core import plugin_manager
 
-    return _guard(
-        lambda: bool(plugin_manager.get_all_plugins()),
-        "No plugins found or loaded.",
-    )
+        return bool(plugin_manager.get_all_plugins())
+
+    return _guard(_any_plugins, "No plugins found or loaded.")

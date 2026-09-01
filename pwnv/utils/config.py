@@ -22,8 +22,6 @@ _EMPTY_CONFIG: dict = {"ctfs": [], "challenges": [], "challenge_tags": []}
 
 def _resolve_config_path() -> Path:
     """Return the path of the configuration file."""
-    import typer
-
     from pwnv.constants import DEFAULT_CONFIG_BASENAME, PWNV_CONFIG_ENV
 
     if override := os.getenv(PWNV_CONFIG_ENV):
@@ -33,6 +31,10 @@ def _resolve_config_path() -> Path:
         candidate = parent / DEFAULT_CONFIG_BASENAME
         if candidate.is_file():
             return candidate
+
+    # Only the fallback needs typer, and `from pwnv import challenge` reaches
+    # this module: a solve script should not import the CLI to find its config.
+    import typer
 
     return Path(typer.get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
 

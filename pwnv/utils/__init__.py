@@ -58,6 +58,15 @@ from pwnv.utils.remote import (
     sync_remote_ctf,
 )
 from pwnv.utils.selection import resolve_challenge
+from pwnv.utils.serialize import (
+    challenge_payload,
+    challenges_payload,
+    ctf_payload,
+    ctfs_payload,
+    emit_json,
+    plugin_payload,
+    plugins_payload,
+)
 from pwnv.utils.ui import (
     command,
     error,
@@ -80,9 +89,21 @@ from pwnv.utils.ui import (
     warn,
 )
 from pwnv.utils.venv import ctf_env_path, installed_packages, venv_python
-from pwnv.utils.workspace import backup_workspace, export_workspace, import_workspace
+from pwnv.utils.workspace import (
+    backup_workspace,
+    export_workspace,
+    import_workspace,
+    restore_workspace,
+)
 
 __all__ = [
+    "challenge_payload",
+    "challenges_payload",
+    "ctf_payload",
+    "ctfs_payload",
+    "emit_json",
+    "plugin_payload",
+    "plugins_payload",
     # config
     "get_config_path",
     "get_ctfs_path",
@@ -166,4 +187,5 @@ __all__ = [
     "backup_workspace",
     "export_workspace",
     "import_workspace",
+    "restore_workspace",
 ]
