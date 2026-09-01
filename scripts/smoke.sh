@@ -33,11 +33,12 @@ exists() {
   fi
 }
 
-# Assert that a JSON document on stdin satisfies a Python expression, with the
-# parsed document bound to `d`.
+# Assert that a JSON document satisfies a Python expression, with the parsed
+# document bound to `d`. The document is an argument rather than stdin: a shell
+# function on the right of a pipe runs in a subshell, so every failure it
+# counted would be discarded when that subshell exits.
 expect_json() {
-  local description="$1" expression="$2" document
-  document="$(cat)"
+  local description="$1" expression="$2" document="$3"
   if printf '%s' "$document" |
     python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if ($expression) else 1)"; then
     ok "$description"
@@ -93,13 +94,15 @@ step "solve"
 pwnv solve --challenge babyrop --flag "flag{smoke}" --tags smoke
 
 step "json output"
-pwnv status --json |
-  expect_json "status reports the CTF as solved" \
-    'd["ctfs"][0]["challenges"] == 1 and d["ctfs"][0]["solved"] == 1'
+STATUS_JSON="$(pwnv status --json)"
+expect_json "status reports the CTF as solved" \
+  'd["ctfs"][0]["challenges"] == 1 and d["ctfs"][0]["solved"] == 1' \
+  "$STATUS_JSON"
 
-pwnv challenge info --challenge babyrop --json |
-  expect_json "challenge info carries the flag and tags" \
-    'd["challenges"][0]["flag"] == "flag{smoke}" and "smoke" in d["challenges"][0]["tags"]'
+CHALLENGE_JSON="$(pwnv challenge info --challenge babyrop --json)"
+expect_json "challenge info carries the flag and tags" \
+  'd["challenges"][0]["flag"] == "flag{smoke}" and "smoke" in d["challenges"][0]["tags"]' \
+  "$CHALLENGE_JSON"
 
 step "the challenge object"
 if (
@@ -133,9 +136,10 @@ pwnv init --yes --no-install --no-examples --python "$PYTHON_VERSION" \
   --ctfs-folder "$NEW_CTFS"
 pwnv workspace restore "$WORKDIR/move.tar.gz"
 
-pwnv status --json |
-  expect_json "restored workspace kept the CTF, the challenge and the flag" \
-    'len(d["ctfs"]) == 1 and d["ctfs"][0]["challenges"] == 1 and d["ctfs"][0]["solved"] == 1'
+STATUS_JSON="$(pwnv status --json)"
+expect_json "restored workspace kept the CTF, the challenge and the flag" \
+  'len(d["ctfs"]) == 1 and d["ctfs"][0]["challenges"] == 1 and d["ctfs"][0]["solved"] == 1' \
+  "$STATUS_JSON"
 
 NEW_DIR="$(challenge_path)"
 case "$NEW_DIR" in
@@ -147,9 +151,10 @@ exists "$NEW_DIR/solve.py" "solve script travelled with the archive"
 
 # Restoring the same archive twice must not duplicate anything.
 pwnv workspace restore "$WORKDIR/move.tar.gz" >/dev/null
-pwnv status --json |
-  expect_json "restoring twice is a no-op" \
-    'len(d["ctfs"]) == 1 and d["ctfs"][0]["challenges"] == 1'
+STATUS_JSON="$(pwnv status --json)"
+expect_json "restoring twice is a no-op" \
+  'len(d["ctfs"]) == 1 and d["ctfs"][0]["challenges"] == 1' \
+  "$STATUS_JSON"
 
 step "result"
 if [ "$FAILURES" -eq 0 ]; then
