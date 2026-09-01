@@ -857,6 +857,7 @@ wheels = [
 name = "pwnv"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "ctfbridge" },
     { name = "filelock" },
     { name = "inquirerpy" },
@@ -882,6 +883,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.0" },
     { name = "ctfbridge", specifier = ">=0.8.10" },
     { name = "filelock", specifier = ">=3.18.0" },
     { name = "inquirerpy", specifier = ">=0.3.4" },

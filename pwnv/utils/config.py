@@ -32,11 +32,12 @@ def _resolve_config_path() -> Path:
         if candidate.is_file():
             return candidate
 
-    # Only the fallback needs typer, and `from pwnv import challenge` reaches
-    # this module: a solve script should not import the CLI to find its config.
-    import typer
+    # click rather than typer, which re-exports this same function: this is the
+    # branch a default install takes, and `from pwnv import challenge` reaches
+    # it, so a solve script would import the whole CLI to find its config.
+    from click import get_app_dir
 
-    return Path(typer.get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
+    return Path(get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
 
 
 config_path: Path = _resolve_config_path()

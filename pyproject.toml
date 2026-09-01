@@ -15,6 +15,8 @@ authors = [
 keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf", "tool", "workspace", "automation", "workflow", "challenges"]
 requires-python = ">=3.12"
 dependencies = [
+    # Imported directly, to resolve the config directory without typer.
+    "click>=8.0",
     "ctfbridge>=0.8.10",
     "filelock>=3.18.0",
     "inquirerpy>=0.3.4",

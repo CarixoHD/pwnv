@@ -95,8 +95,10 @@ subprocess.run([sys.executable, "-c",
     cwd=challenge.path)
 ```
 
-`pwnv.utils.config` imports `typer` only in the branch that needs
-`typer.get_app_dir`, which is what keeps that assertion true.
+`pwnv.utils.config` never imports `typer`: the branch that resolves the default
+config directory calls `click.get_app_dir`, which typer only re-exports. That
+branch is the one a normal install takes, so importing click rather than typer
+is what keeps the assertion true outside the test environment too.
 
 ## Network
 
