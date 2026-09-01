@@ -71,8 +71,7 @@ def add(
     path: Path = (get_ctfs_path() / sanitize(name)).resolve()
     if is_duplicate(path=path, model_list=get_ctfs()):
         error(f"CTF [cyan]{name}[/] already exists.")
-
-        return
+        raise typer.Exit(code=1)
 
     platform = _checked_platform(platform)
     credentials = {"username": username, "password": password, "token": token}
@@ -110,7 +109,8 @@ def add(
             ),
             credentials if has_credentials else None,
         ):
-            return
+            # add_remote_ctf has already said what went wrong.
+            raise typer.Exit(code=1)
     else:
         add_ctf(CTF(name=name, path=path))
 

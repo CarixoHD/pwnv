@@ -77,9 +77,29 @@ else
   fail "bundled plugins installed from package data"
 fi
 
+# Assert that a command fails, and says why. `set -e` would otherwise abort the
+# run on the first refusal, which is exactly the behaviour being checked here.
+expect_failure() {
+  local description="$1"
+  shift
+  local output status=0
+  output="$("$@" 2>&1)" || status=$?
+  if [ "$status" -eq 0 ]; then
+    fail "$description (exited 0)"
+    printf '%s\n' "$output" | head -5
+  else
+    ok "$description"
+  fi
+}
+
 step "ctf add / challenge add"
 pwnv ctf add smoke --local
 pwnv challenge add babyrop --ctf smoke --category pwn
+
+# A refusal has to be visible to `set -e`, not just to the person reading along.
+expect_failure "adding the same CTF twice fails" pwnv ctf add smoke --local
+expect_failure "an unknown platform is rejected" \
+  pwnv ctf add other --url https://ctf.invalid --platform notaplatform
 
 challenge_path() {
   pwnv challenge info --challenge babyrop --json |

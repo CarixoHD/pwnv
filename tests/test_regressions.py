@@ -746,3 +746,28 @@ def test_restoring_something_that_is_not_an_archive_reports_cleanly(tmp_path):
     assert result.exit_code == 1
     assert not isinstance(result.exception, tarfile.TarError)
     assert "could not be read" in result.output
+
+
+def test_an_add_that_was_refused_exits_non_zero():
+    """A script running under `set -e` has to notice a command that failed."""
+    runner = CliRunner()
+    ctf = CTF(name="Dup", path=get_ctfs_path() / "dup")
+    add_ctf(ctf)
+    add_challenge(
+        Challenge(
+            name="Baby ROP",
+            ctf_id=ctf.id,
+            path=ctf.path / "pwn" / "baby-rop",
+            category=Category.pwn,
+        )
+    )
+
+    duplicate_ctf = runner.invoke(app, ["ctf", "add", "Dup", "--local"])
+    duplicate_challenge = runner.invoke(
+        app, ["challenge", "add", "Baby ROP", "--ctf", "Dup", "--category", "pwn"]
+    )
+
+    assert duplicate_ctf.exit_code == 1
+    assert duplicate_challenge.exit_code == 1
+    assert "already exists" in duplicate_ctf.output
+    assert "already exists" in duplicate_challenge.output

@@ -41,6 +41,13 @@ code 0, including on a workspace where nothing has been added yet. Commands in
 `--json` mode never open a picker, because there is nobody on the far end of a
 pipe to answer it.
 
+## Exit codes
+
+A command that printed an error exits `1`, so `set -e` and `&&` behave. That
+includes the refusals that are not really failures — adding a CTF or challenge
+that already exists, or a plugin name that is taken. A warning is not a failure:
+"No running CTFs found" is exit `0`, because nothing went wrong.
+
 ## Examples
 
 Open every unsolved pwn challenge in your editor:

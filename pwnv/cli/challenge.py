@@ -82,7 +82,7 @@ def add(
             f"[cyan]{name}[/] already exists in "
             f"[cyan]{chosen_ctf.name}/{chosen_category.name}/[/]."
         )
-        return
+        raise typer.Exit(code=1)
 
     challenge = Challenge(
         ctf_id=chosen_ctf.id, name=name, path=ch_path, category=chosen_category

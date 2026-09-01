@@ -38,14 +38,14 @@ def add(name: str) -> None:
             f"Invalid plugin name '{name}'."
             "Must be alphanumeric (no underscores, dashes, or spaces)."
         )
-        return
+        raise typer.Exit(code=1)
 
     plugins_dir = get_plugins_directory()
     plugin_file = plugins_dir / f"{name}.py"
 
     if plugin_file.exists():
         error(f"Plugin '{name}' already exists at {plugin_file}.")
-        return
+        raise typer.Exit(code=1)
 
     category = prompt_category_selection()
     templates_dir = get_templates_directory() / category.name
@@ -100,7 +100,7 @@ def remove() -> None:
 
     if not plugin_file.exists():
         error(f"Plugin file '{plugin_file}' not found (this shouldn't happen).")
-        return
+        raise typer.Exit(code=1)
 
     if not prompt_confirm(
         f"Are you sure you want to remove the plugin '{plugin_name_lower}' "
@@ -203,7 +203,7 @@ def select() -> None:
             f"No plugins found for the category '{category.name}'. "
             f"Use 'pwnv plugin add' to create one."
         )
-        return
+        raise typer.Exit(code=1)
 
     chosen_plugin = prompt_plugin_selection(
         plugins_for_cat, f"Select a plugin for '{category.name}':"
