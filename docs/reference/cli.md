@@ -33,7 +33,7 @@ pwnv init [OPTIONS]
 | `--no-install`, `-n` |  |  | Do not install default packages in the virtual environment |
 | `--no-examples` |  |  | Do not copy the bundled example plugins and templates |
 | `--ctfs-folder`, `-f` | `PATH` | `./CTF` | Directory that will store all CTFs |
-| `--python`, `-p` | `TEXT` | `3.13` | Python version or interpreter for the CTF environment |
+| `--python`, `-p` | `STR` | `3.13` | Python version or interpreter for the CTF environment |
 
 ### `pwnv reset`
 
@@ -59,7 +59,7 @@ pwnv shell-init [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--shell` | `TEXT` |  | bash, zsh, or fish (default: taken from $SHELL) |
+| `--shell` | `STR` |  | bash, zsh, or fish (default: taken from $SHELL) |
 
 ### `pwnv solve`
 
@@ -71,10 +71,10 @@ pwnv solve [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--flag` | `TEXT` | `` |  |
-| `--challenge` | `TEXT` |  | Challenge name (skips selection) |
-| `--tags` | `TEXT` |  | Comma-separated tags (skips prompt) |
-| `--ctf` | `TEXT` |  | Limit selection to one CTF |
+| `--flag` | `STR` | `` |  |
+| `--challenge` | `STR` |  | Challenge name (skips selection) |
+| `--tags` | `STR` |  | Comma-separated tags (skips prompt) |
+| `--ctf` | `STR` |  | Limit selection to one CTF |
 | `--history` |  |  | Show submission history |
 | `--show-flags` |  |  | Show stored flags in submission history |
 
@@ -88,9 +88,9 @@ pwnv status [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | Show one CTF only |
+| `--ctf` | `STR` |  | Show one CTF only |
 | `--detail`, `-d` |  |  | Add per-category progress, recent solves, and what is left |
-| `--limit` | `INTEGER RANGE` | `5` | Rows to show in the detail tables |
+| `--limit` | `INT RANGE` | `5` | Rows to show in the detail tables |
 | `--json` |  |  | Print the result as JSON on stdout instead of a rendered view |
 
 ## `pwnv challenge`
@@ -100,17 +100,17 @@ pwnv status [OPTIONS]
 Adds a new challenge to a selected CTF.
 
 ```
-pwnv challenge add [OPTIONS] NAME
+pwnv challenge add [OPTIONS] {name}
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `NAME` | `TEXT` | yes |
+| `NAME` | `STR` | yes |
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | CTF name (skips selection) |
-| `--category` | `TEXT` |  | Challenge category (skips selection) |
+| `--ctf` | `STR` |  | CTF name (skips selection) |
+| `--category` | `STR` |  | Challenge category (skips selection) |
 
 ### `pwnv challenge remove`
 
@@ -122,8 +122,8 @@ pwnv challenge remove [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--challenge` | `TEXT` |  | Challenge name (skips selection) |
-| `--ctf` | `TEXT` |  | Limit selection to one CTF |
+| `--challenge` | `STR` |  | Challenge name (skips selection) |
+| `--ctf` | `STR` |  | Limit selection to one CTF |
 | `--yes`, `-y` |  |  | Skip the confirmation prompt |
 
 ### `pwnv challenge info`
@@ -137,8 +137,8 @@ pwnv challenge info [OPTIONS]
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `--all`, `-a` |  |  | Show challenges from all CTFs |
-| `--challenge` | `TEXT` |  | Challenge name (skips selection) |
-| `--ctf` | `TEXT` |  | Limit selection to one CTF |
+| `--challenge` | `STR` |  | Challenge name (skips selection) |
+| `--ctf` | `STR` |  | Limit selection to one CTF |
 | `--json` |  |  | Print the result as JSON on stdout instead of a rendered view |
 
 ### `pwnv challenge filter`
@@ -154,20 +154,20 @@ pwnv challenge filter [OPTIONS]
 Search challenge names, descriptions, categories, and tags.
 
 ```
-pwnv challenge search [OPTIONS] [QUERY]
+pwnv challenge search [OPTIONS] [query]
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `QUERY` | `TEXT` | no |
+| `QUERY` | `STR` | no |
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | Limit results to one CTF |
-| `--category` | `TEXT` |  |  |
-| `--tag` | `TEXT` |  | Required tag; repeatable |
-| `--min-points` | `INTEGER RANGE` |  |  |
-| `--max-points` | `INTEGER RANGE` |  |  |
+| `--ctf` | `STR` |  | Limit results to one CTF |
+| `--category` | `STR` |  |  |
+| `--tag` | `STR` |  | Required tag; repeatable |
+| `--min-points` | `INT RANGE` |  |  |
+| `--max-points` | `INT RANGE` |  |  |
 | `--has-service`, `--no-service` |  |  | Filter by remote service availability |
 | `--solved`, `--unsolved` |  |  | Filter by solve state |
 | `--json` |  |  | Print the result as JSON on stdout instead of a rendered view |
@@ -184,12 +184,12 @@ pwnv challenge scaffold [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--challenge` | `TEXT` |  | Challenge name (skips selection) |
-| `--ctf` | `TEXT` |  | Limit selection to one CTF |
-| `--category` | `TEXT` |  | Template category to apply (defaults to the challenge's own) |
-| `--plugin` | `TEXT` |  | Apply a specific plugin by name |
+| `--challenge` | `STR` |  | Challenge name (skips selection) |
+| `--ctf` | `STR` |  | Limit selection to one CTF |
+| `--category` | `STR` |  | Template category to apply (defaults to the challenge's own) |
+| `--plugin` | `STR` |  | Apply a specific plugin by name |
 | `--force`, `-f` |  |  | Overwrite files that already exist |
-| `--suffix` | `TEXT` | `` | Append to every written filename, e.g. --suffix _pwn -> solve_pwn.py |
+| `--suffix` | `STR` | `` | Append to every written filename, e.g. --suffix _pwn -> solve_pwn.py |
 
 ### `pwnv challenge path`
 
@@ -198,33 +198,33 @@ Print a challenge directory and nothing else.
 Built for `cd "$(pwnv challenge path baby-rop)"`; see `pwnv shell-init` for the `pwncd` wrapper.
 
 ```
-pwnv challenge path [OPTIONS] [CHALLENGE_NAME]
+pwnv challenge path [OPTIONS] [challenge_name]
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `CHALLENGE_NAME` | `TEXT` | no |
+| `CHALLENGE_NAME` | `STR` | no |
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | Limit selection to one CTF |
+| `--ctf` | `STR` |  | Limit selection to one CTF |
 
 ### `pwnv challenge env add`
 
 Install packages into a challenge-local virtual environment.
 
 ```
-pwnv challenge env add [OPTIONS] PACKAGES...
+pwnv challenge env add [OPTIONS] {packages}...
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `PACKAGES` | `TEXT` | yes |
+| `PACKAGES` | `STR` | yes |
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--challenge` | `TEXT` |  |  |
-| `--ctf` | `TEXT` |  |  |
+| `--challenge` | `STR` |  |  |
+| `--ctf` | `STR` |  |  |
 
 ### `pwnv challenge env run`
 
@@ -236,26 +236,26 @@ pwnv challenge env run [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--challenge` | `TEXT` |  |  |
-| `--ctf` | `TEXT` |  |  |
+| `--challenge` | `STR` |  |  |
+| `--ctf` | `STR` |  |  |
 
 ### `pwnv challenge note add`
 
 Append a timestamped entry to a challenge's NOTES.md file.
 
 ```
-pwnv challenge note add [OPTIONS] TEXT
+pwnv challenge note add [OPTIONS] {text}
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `TEXT` | `TEXT` | yes |
+| `TEXT` | `STR` | yes |
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--section`, `-s` | `TEXT` | `Findings` |  |
-| `--challenge` | `TEXT` |  |  |
-| `--ctf` | `TEXT` |  |  |
+| `--section`, `-s` | `STR` | `Findings` |  |
+| `--challenge` | `STR` |  |  |
+| `--ctf` | `STR` |  |  |
 
 ### `pwnv challenge note show`
 
@@ -267,8 +267,8 @@ pwnv challenge note show [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--challenge` | `TEXT` |  |  |
-| `--ctf` | `TEXT` |  |  |
+| `--challenge` | `STR` |  |  |
+| `--ctf` | `STR` |  |  |
 
 ## `pwnv ctf`
 
@@ -277,21 +277,21 @@ pwnv challenge note show [OPTIONS]
 Adds a new CTF, either local or remote, to your environment.
 
 ```
-pwnv ctf add [OPTIONS] NAME
+pwnv ctf add [OPTIONS] {name}
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `NAME` | `TEXT` | yes |
+| `NAME` | `STR` | yes |
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `--local` |  |  | Create a local CTF without prompting |
-| `--url` | `TEXT` |  | Remote CTF URL (skips the remote prompt) |
-| `--platform` | `TEXT` |  | Force the platform instead of letting ctfbridge detect it |
-| `--username` | `TEXT` |  | (env: `PWNV_CTF_USERNAME`) |
-| `--password` | `TEXT` |  | (env: `PWNV_CTF_PASSWORD`) |
-| `--token` | `TEXT` |  | (env: `PWNV_CTF_TOKEN`) |
+| `--url` | `STR` |  | Remote CTF URL (skips the remote prompt) |
+| `--platform` | `STR` |  | Force the platform instead of letting ctfbridge detect it |
+| `--username` | `STR` |  | (env: `PWNV_CTF_USERNAME`) |
+| `--password` | `STR` |  | (env: `PWNV_CTF_PASSWORD`) |
+| `--token` | `STR` |  | (env: `PWNV_CTF_TOKEN`) |
 
 ### `pwnv ctf remove`
 
@@ -303,7 +303,7 @@ pwnv ctf remove [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | CTF name (skips selection) |
+| `--ctf` | `STR` |  | CTF name (skips selection) |
 | `--yes`, `-y` |  |  | Skip the confirmation prompt |
 
 ### `pwnv ctf info`
@@ -316,7 +316,7 @@ pwnv ctf info [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | CTF name (skips selection) |
+| `--ctf` | `STR` |  | CTF name (skips selection) |
 | `--json` |  |  | Print the result as JSON on stdout instead of a rendered view |
 
 ### `pwnv ctf stop`
@@ -329,7 +329,7 @@ pwnv ctf stop [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | CTF name (skips selection) |
+| `--ctf` | `STR` |  | CTF name (skips selection) |
 
 ### `pwnv ctf start`
 
@@ -341,7 +341,7 @@ pwnv ctf start [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | CTF name (skips selection) |
+| `--ctf` | `STR` |  | CTF name (skips selection) |
 
 ### `pwnv ctf sync`
 
@@ -353,11 +353,11 @@ pwnv ctf sync [OPTIONS]
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--ctf` | `TEXT` |  | CTF name (skips selection) |
+| `--ctf` | `STR` |  | CTF name (skips selection) |
 | `--watch`, `-w` |  |  | Keep polling for changes until you stop it |
-| `--interval` | `INTEGER RANGE` | `60` | Seconds between polls in --watch mode |
+| `--interval` | `INT RANGE` | `60` | Seconds between polls in --watch mode |
 | `--refresh-attachments` |  |  | Re-download attachments even when the local copies still match |
-| `--platform` | `TEXT` |  | Force the platform instead of letting ctfbridge detect it |
+| `--platform` | `STR` |  | Force the platform instead of letting ctfbridge detect it |
 
 ## `pwnv plugin`
 
@@ -366,12 +366,12 @@ pwnv ctf sync [OPTIONS]
 Creates a new plugin file and its associated template for a specific category. Use 'pwnv plugin select' to activate it.
 
 ```
-pwnv plugin add [OPTIONS] NAME
+pwnv plugin add [OPTIONS] {name}
 ```
 
 | Argument | Type | Required |
 | :--- | :--- | :--- |
-| `NAME` | `TEXT` | yes |
+| `NAME` | `STR` | yes |
 
 ### `pwnv plugin remove`
 
@@ -408,7 +408,7 @@ pwnv plugin select [OPTIONS]
 Create a full archive, including challenge files and credentials.
 
 ```
-pwnv workspace backup [OPTIONS] [DESTINATION]
+pwnv workspace backup [OPTIONS] [destination]
 ```
 
 | Argument | Type | Required |
@@ -424,7 +424,7 @@ pwnv workspace backup [OPTIONS] [DESTINATION]
 Restore a full backup archive: challenge files, notes, and credentials.
 
 ```
-pwnv workspace restore [OPTIONS] SOURCE
+pwnv workspace restore [OPTIONS] {source}
 ```
 
 | Argument | Type | Required |
@@ -441,7 +441,7 @@ pwnv workspace restore [OPTIONS] SOURCE
 Export portable metadata without challenge files or credentials.
 
 ```
-pwnv workspace export [OPTIONS] [DESTINATION]
+pwnv workspace export [OPTIONS] [destination]
 ```
 
 | Argument | Type | Required |
@@ -453,7 +453,7 @@ pwnv workspace export [OPTIONS] [DESTINATION]
 Merge a portable export into the current workspace.
 
 ```
-pwnv workspace import [OPTIONS] SOURCE
+pwnv workspace import [OPTIONS] {source}
 ```
 
 | Argument | Type | Required |

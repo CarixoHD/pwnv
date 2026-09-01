@@ -55,9 +55,9 @@ To assert the stdout/stderr split, the runner has to keep them apart:
 ```python
 def _strict_runner() -> CliRunner:
     try:
-        return CliRunner(mix_stderr=False)   # click 8.1
+        return CliRunner(mix_stderr=False)  # click 8.1
     except TypeError:
-        return CliRunner()                   # click >= 8.2 splits them already
+        return CliRunner()  # click >= 8.2 splits them already
 ```
 
 The diagnostics console is built with `Console(stderr=True)`, which resolves
@@ -90,9 +90,14 @@ meaningless — and it runs from a challenge directory, since importing the name
 is what resolves it:
 
 ```python
-subprocess.run([sys.executable, "-c",
-    "import sys; from pwnv import challenge; assert 'typer' not in sys.modules"],
-    cwd=challenge.path)
+subprocess.run(
+    [
+        sys.executable,
+        "-c",
+        "import sys; from pwnv import challenge; assert 'typer' not in sys.modules",
+    ],
+    cwd=challenge.path,
+)
 ```
 
 `pwnv.utils.config` never imports `typer`: the branch that resolves the default

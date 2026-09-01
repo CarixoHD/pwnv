@@ -20,7 +20,6 @@ import sys
 from pathlib import Path
 from typing import Any, Iterator
 
-import click
 import typer.main
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,12 +38,17 @@ same thing in the terminal.
 """
 
 
+# Typer 0.27 vendors its own click fork, so an `isinstance` check against the
+# installed click is always False. Everything below goes by the attributes
+# instead, which both clicks share.
+
+
 def _escape(text: str) -> str:
     """Make help text safe for a Markdown table cell."""
     return text.replace("|", "\\|").replace("\n", " ").strip()
 
 
-def _default(param: click.Parameter) -> str:
+def _default(param: Any) -> str:
     """Render a default the way someone reading it would type it."""
     value = param.default
     if value is None or value is False:
@@ -62,42 +66,40 @@ def _default(param: click.Parameter) -> str:
     return f"`{text}`"
 
 
-def _type_name(param: click.Parameter) -> str:
-    if isinstance(param.type, click.Choice):
-        return " \\| ".join(f"`{choice}`" for choice in param.type.choices)
+def _type_name(param: Any) -> str:
+    if choices := getattr(param.type, "choices", None):
+        return " \\| ".join(f"`{choice}`" for choice in choices)
     name = param.type.name
     return "" if name == "boolean" else f"`{name.upper()}`"
 
 
-def _options(command: click.Command) -> list[click.Option]:
+def _options(command: Any) -> list[Any]:
     return [
         param
         for param in command.params
-        if isinstance(param, click.Option) and not param.hidden
+        if param.param_type_name == "option" and not param.hidden
     ]
 
 
-def _arguments(command: click.Command) -> list[click.Argument]:
-    return [param for param in command.params if isinstance(param, click.Argument)]
+def _arguments(command: Any) -> list[Any]:
+    return [param for param in command.params if param.param_type_name == "argument"]
 
 
-def _walk(
-    command: click.Command, path: list[str]
-) -> Iterator[tuple[list[str], click.Command]]:
+def _walk(command: Any, path: list[str]) -> Iterator[tuple[list[str], Any]]:
     """Yield every leaf command, depth first, in the order Typer declares it."""
-    if isinstance(command, click.Group):
+    if hasattr(command, "commands"):
         for name, child in command.commands.items():
             yield from _walk(child, [*path, name])
         return
     yield path, command
 
 
-def _usage(path: list[str], command: click.Command) -> str:
-    ctx = click.Context(command, info_name=" ".join(path))
+def _usage(path: list[str], command: Any) -> str:
+    ctx = command.context_class(command, info_name=" ".join(path))
     return " ".join([*path, *command.collect_usage_pieces(ctx)])
 
 
-def _describe(command: click.Command) -> str:
+def _describe(command: Any) -> str:
     text = (command.help or command.short_help or "").strip()
     # Typer keeps the docstring verbatim; the first paragraph is the summary.
     paragraphs = [
@@ -107,7 +109,7 @@ def _describe(command: click.Command) -> str:
     return "\n\n".join(block for block in paragraphs if block)
 
 
-def _render(path: list[str], command: click.Command) -> str:
+def _render(path: list[str], command: Any) -> str:
     lines = [f"### `{' '.join(path)}`", ""]
     description = _describe(command)
     if description:
