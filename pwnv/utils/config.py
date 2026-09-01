@@ -73,8 +73,14 @@ def load_config() -> dict:
     return _read_config_file()
 
 
-def _invalidate_cache() -> None:
-    """Clear the cached configuration."""
+def invalidate_cache() -> None:
+    """
+    Clear the cached configuration.
+
+    Every write goes through here, so a long-lived process - a solve script
+    calling :func:`pwnv.api.current`, or the shell - sees a change another
+    ``pwnv`` process made rather than the config as it was at import time.
+    """
     load_config.cache_clear()
 
 
@@ -101,7 +107,7 @@ def save_config(cfg: dict) -> None:
     """Write ``cfg`` to disk atomically and invalidate the cache."""
     with _lock:
         _write_config_file(cfg)
-    _invalidate_cache()
+    invalidate_cache()
 
 
 @contextmanager
@@ -118,7 +124,7 @@ def config_transaction() -> Generator[dict]:
         cfg = _read_config_file()
         yield cfg
         _write_config_file(cfg)
-    _invalidate_cache()
+    invalidate_cache()
 
 
 def get_config_path() -> Path:

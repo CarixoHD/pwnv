@@ -69,11 +69,7 @@ def challenges_payload(challenges: Sequence[Challenge]) -> List[Dict[str, Any]]:
     return [challenge_payload(item, ctf_names=ctf_names) for item in challenges]
 
 
-def ctf_payload(ctf: CTF) -> Dict[str, Any]:
-    """Render one CTF, including the challenge counts a caller would tally."""
-    from pwnv.utils.crud import challenges_for_ctf
-
-    challenges = challenges_for_ctf(ctf)
+def _ctf_payload(ctf: CTF, challenges: int, solved: int) -> Dict[str, Any]:
     return {
         "id": str(ctf.id),
         "name": ctf.name,
@@ -81,33 +77,65 @@ def ctf_payload(ctf: CTF) -> Dict[str, Any]:
         "url": ctf.url,
         "running": bool(ctf.running),
         "created_at": ctf.created_at.isoformat(),
-        "challenges": len(challenges),
-        "solved": sum(1 for item in challenges if item.solved),
+        "challenges": challenges,
+        "solved": solved,
     }
 
 
+def ctf_payload(ctf: CTF) -> Dict[str, Any]:
+    """Render one CTF, including the challenge counts a caller would tally."""
+    from pwnv.utils.crud import challenges_for_ctf
+
+    challenges = challenges_for_ctf(ctf)
+    return _ctf_payload(
+        ctf, len(challenges), sum(1 for item in challenges if item.solved)
+    )
+
+
 def ctfs_payload(ctfs: Sequence[CTF]) -> List[Dict[str, Any]]:
-    return [ctf_payload(item) for item in ctfs]
+    """Render several CTFs, counting the challenge list once for all of them."""
+    from collections import Counter
+
+    from pwnv.utils.crud import get_challenges
+
+    # `challenges_for_ctf` rebuilds every challenge in the workspace from the
+    # config, so calling it per CTF made this quadratic in the number of records.
+    challenges = get_challenges()
+    totals = Counter(item.ctf_id for item in challenges)
+    solved = Counter(item.ctf_id for item in challenges if item.solved)
+    return [_ctf_payload(item, totals[item.id], solved[item.id]) for item in ctfs]
 
 
-def plugin_payload(plugin: ChallengePlugin) -> Dict[str, Any]:
-    """Render one plugin, minus its source - that is what the file path is for."""
+def _plugin_payload(
+    plugin: ChallengePlugin, selection: Dict[str, str], directory: Any
+) -> Dict[str, Any]:
     from pwnv.core.plugin_manager import plugin_name
-    from pwnv.utils.plugin import get_plugin_selection, get_plugins_directory
 
     name = plugin_name(plugin)
     category = plugin.category().name
     return {
         "name": name,
         "category": category,
-        "file": str(get_plugins_directory() / f"{name}.py"),
-        "selected": get_plugin_selection().get(category) == name,
+        "file": str(directory / f"{name}.py"),
+        "selected": selection.get(category) == name,
         "templates": sorted(plugin.templates_to_copy),
     }
 
 
+def plugin_payload(plugin: ChallengePlugin) -> Dict[str, Any]:
+    """Render one plugin, minus its source - that is what the file path is for."""
+    from pwnv.utils.plugin import get_plugin_selection, get_plugins_directory
+
+    return _plugin_payload(plugin, get_plugin_selection(), get_plugins_directory())
+
+
 def plugins_payload(plugins: Sequence[ChallengePlugin]) -> List[Dict[str, Any]]:
-    return [plugin_payload(item) for item in plugins]
+    """Render several plugins, reading the selection and the directory once."""
+    from pwnv.utils.plugin import get_plugin_selection, get_plugins_directory
+
+    selection = get_plugin_selection()
+    directory = get_plugins_directory()
+    return [_plugin_payload(item, selection, directory) for item in plugins]
 
 
 def emit_json(payload: Any) -> None:

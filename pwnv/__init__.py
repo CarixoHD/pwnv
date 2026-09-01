@@ -7,7 +7,10 @@ that needs none of them.
 
 ``challenge`` is resolved when it is imported, from the working directory, and
 is an ordinary :class:`ctfbridge.models.challenge.Challenge` afterwards. Call
-:func:`pwnv.api.current` again if the directory changes under you.
+:func:`pwnv.api.current` again if the directory changes under you - it is also
+the form to reach for when a script wants to handle the "not in a challenge"
+case itself, since importing the name raises
+:class:`pwnv.api.NoChallengeError` on the import line.
 """
 
 from typing import TYPE_CHECKING, Any, List
@@ -15,7 +18,10 @@ from typing import TYPE_CHECKING, Any, List
 if TYPE_CHECKING:
     import typer
 
-__all__ = ["app", "challenge", "main"]
+# `challenge` is deliberately absent: it is not a value but a lookup, and a
+# `from pwnv import *` outside a challenge directory would raise NoChallengeError
+# on a name the caller never asked for. `__dir__` still advertises it.
+__all__ = ["app", "main"]
 
 _app: "typer.Typer | None" = None
 
@@ -69,7 +75,7 @@ def __getattr__(name: str) -> Any:
 
 
 def __dir__() -> List[str]:
-    return sorted(__all__)
+    return sorted({*__all__, "api", "challenge"})
 
 
 def main() -> None:

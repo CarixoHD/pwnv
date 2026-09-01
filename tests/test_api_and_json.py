@@ -1,6 +1,7 @@
 """Tests for the solve-script object and the machine-readable output contract."""
 
 import json
+import os
 import subprocess
 import sys
 import textwrap
@@ -260,6 +261,56 @@ def test_importing_the_object_does_not_drag_in_the_cli(monkeypatch):
     assert result.stdout.strip() == "Probe"
 
 
+def test_the_default_config_location_does_not_reach_for_typer(tmp_path):
+    """
+    The same assertion, on the branch an ordinary install actually takes.
+
+    With no `PWNV_CONFIG` and no config file above the working directory, the
+    path comes from the application directory - which used to be resolved with
+    `typer.get_app_dir`, so every solve script on a normal machine imported the
+    CLI after all. It is `click.get_app_dir`, which typer only re-exports.
+    """
+    home = tmp_path / "home"
+    (home / ".config").mkdir(parents=True)
+    work = tmp_path / "work"
+    work.mkdir()
+
+    env = {
+        **os.environ,
+        "HOME": str(home),
+        "XDG_CONFIG_HOME": str(home / ".config"),
+    }
+    env.pop("PWNV_CONFIG", None)
+
+    probe = textwrap.dedent(
+        """
+        import sys
+        from pathlib import Path
+
+        from pwnv.utils.config import config_path
+
+        assert "typer" not in sys.modules, sorted(
+            name for name in sys.modules if name.startswith("typer")
+        )
+
+        import click
+
+        assert config_path == Path(click.get_app_dir("pwnv")) / "pwnv_config.json"
+        print(config_path)
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True,
+        text=True,
+        cwd=work,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().startswith(str(home))
+
+
 # --------------------------------------------------------------------------- #
 # the json contract
 # --------------------------------------------------------------------------- #
@@ -430,8 +481,34 @@ def test_diagnostics_never_land_in_the_data_channel(monkeypatch, tmp_path):
 def test_the_no_challenges_guard_writes_to_stderr(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
-    result = _invoke("challenge", "info", "--json")
+    result = _invoke("challenge", "info")
 
     assert result.exit_code == 1
     assert result.stdout == ""
     assert "No challenges found" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "argv, key",
+    [
+        (["challenge", "info", "--json"], "challenges"),
+        (["challenge", "search", "--json"], "challenges"),
+        (["ctf", "info", "--json"], "ctfs"),
+        (["plugin", "info", "--json"], "plugins"),
+    ],
+)
+def test_an_empty_workspace_is_an_empty_list_not_an_error(
+    monkeypatch, tmp_path, argv, key
+):
+    """
+    The guards that check for records must not fire in `--json` mode.
+
+    "There is nothing here" is an answer a script can act on; exit code 1 with
+    no document at all is one it has to tell apart from a crash.
+    """
+    monkeypatch.chdir(tmp_path)
+
+    result = _invoke(*argv)
+
+    assert result.exit_code == 0, result.stderr
+    assert json.loads(result.stdout) == {key: []}

@@ -37,8 +37,9 @@ pwnv challenge info --json | jq -r '.challenges[0].services[0].host'
 ```
 
 An empty result set is an answer, not an error — `{"challenges": []}` with exit
-code 0. Commands in `--json` mode never open a picker, because there is nobody
-on the far end of a pipe to answer it.
+code 0, including on a workspace where nothing has been added yet. Commands in
+`--json` mode never open a picker, because there is nobody on the far end of a
+pipe to answer it.
 
 ## Examples
 

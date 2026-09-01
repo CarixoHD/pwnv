@@ -355,10 +355,10 @@ def test_config_transaction_reads_fresh_state_under_the_lock():
 
 def test_corrupt_config_reports_cleanly_instead_of_traceback():
     """A truncated config must produce a readable error, not a JSONDecodeError."""
-    from pwnv.utils.config import get_config_path, _invalidate_cache, load_config
+    from pwnv.utils.config import get_config_path, invalidate_cache, load_config
 
     get_config_path().write_text('{"ctfs": [', encoding="utf-8")
-    _invalidate_cache()
+    invalidate_cache()
 
     with pytest.raises(typer.Exit) as excinfo:
         load_config()

@@ -14,7 +14,8 @@ which command emitted them.
   arguments and the working directory. It never opens a picker, because a pipe
   cannot answer one.
 - **Empty is not an error.** A query that matches nothing returns an empty list
-  and exit code 0.
+  and exit code 0 - including on a workspace with no records at all, where the
+  same command without `--json` tells you to create one and exits 1.
 
 ## `challenges`
 
@@ -37,7 +38,15 @@ Emitted by `pwnv challenge info --json` and `pwnv challenge search --json`.
       "author": "organiser",
       "slug": "baby-rop",
       "services": [{"type": "tcp", "host": "chal.example.org", "port": 31337}],
-      "attachments": [{"name": "vuln", "url": "https://..."}]
+      "attachments": [
+        {
+          "name": "vuln",
+          "local_path": "/home/you/ctfs/DemoCTF/pwn/baby-rop/vuln",
+          "size_bytes": 8712,
+          "sha256": "9f86d0...",
+          "download_info": null
+        }
+      ]
     }
   ]
 }
@@ -45,6 +54,11 @@ Emitted by `pwnv challenge info --json` and `pwnv challenge search --json`.
 
 `category` is the enum's name, `solved` is a plain boolean, and `id` and `path`
 are strings.
+
+`services` and `attachments` are passed through from the platform as
+`ctfbridge` dumped them, so their keys are whichever ones that model carries -
+an attachment adds `sha256`, which pwnv records from the copy on disk. Both are
+absent for a challenge that was never synced.
 
 ## `ctfs`
 

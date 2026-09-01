@@ -1,4 +1,12 @@
-def _guard(predicate, msg):
+def _guard(predicate, msg, *, empty_is_data=False):
+    """
+    Refuse to run a command whose precondition is not met.
+
+    ``empty_is_data`` marks a guard that only checks for records to report on.
+    Those commands still run under ``--json``, because the JSON contract says an
+    empty workspace is an empty list and exit code 0, not an error - a script
+    piping into `jq` should not have to tell "nothing here" apart from a crash.
+    """
     from functools import wraps
 
     import typer
@@ -8,7 +16,7 @@ def _guard(predicate, msg):
     def deco(fn):
         @wraps(fn)
         def wrapper(*a, **kw):
-            if predicate():
+            if predicate() or (empty_is_data and kw.get("json_output")):
                 return fn(*a, **kw)
             warn(msg)
             raise typer.Exit(code=1)
@@ -31,13 +39,15 @@ def config_exists():
 def ctfs_exists():
     from pwnv.utils.crud import get_ctfs
 
-    return _guard(lambda: bool(get_ctfs()), "No CTFs found.")
+    return _guard(lambda: bool(get_ctfs()), "No CTFs found.", empty_is_data=True)
 
 
 def challenges_exists():
     from pwnv.utils.crud import get_challenges
 
-    return _guard(lambda: bool(get_challenges()), "No challenges found.")
+    return _guard(
+        lambda: bool(get_challenges()), "No challenges found.", empty_is_data=True
+    )
 
 
 def plugins_exists():
@@ -49,4 +59,4 @@ def plugins_exists():
 
         return bool(plugin_manager.get_all_plugins())
 
-    return _guard(_any_plugins, "No plugins found or loaded.")
+    return _guard(_any_plugins, "No plugins found or loaded.", empty_is_data=True)
