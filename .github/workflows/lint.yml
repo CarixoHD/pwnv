@@ -22,16 +22,16 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Run tests
-        run: uv run --python ${{ matrix.python-version }} pytest
+        run: uv run --group dev --python ${{ matrix.python-version }} pytest
 
       - name: Run Ruff Lint
-        run: uv run --python ${{ matrix.python-version }} ruff check .
+        run: uv run --group dev --python ${{ matrix.python-version }} ruff check .
 
       - name: Run Ruff Format Check
-        run: uv run --python ${{ matrix.python-version }} ruff format --check .
+        run: uv run --group dev --python ${{ matrix.python-version }} ruff format --check .
 
       - name: Run mypy
-        run: uv run --python ${{ matrix.python-version }} mypy pwnv
+        run: uv run --group dev --python ${{ matrix.python-version }} mypy pwnv
 
       - name: Build package
         run: uv build
