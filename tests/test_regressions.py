@@ -393,7 +393,7 @@ def test_expired_session_is_retried_with_stored_credentials(tmp_path, monkeypatc
         assert creds["username"] == "player"
         return True
 
-    async def _methods(url):
+    async def _methods(url, platform=None):
         return object(), ["credentials"]
 
     monkeypatch.setattr(remote_mod, "get_remote_challenges", _fetch)

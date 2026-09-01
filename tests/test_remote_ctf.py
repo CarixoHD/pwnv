@@ -200,7 +200,7 @@ def test_add_remote_ctf_fails_when_client_unavailable(monkeypatch, isolated_conf
 
     # Simulate inability to create a client/auth methods (network or URL failure)
 
-    async def _no_client(url):
+    async def _no_client(url, platform=None):
         return None, None
 
     monkeypatch.setattr(remote, "get_remote_credential_methods", _no_client)
@@ -219,7 +219,7 @@ def test_add_remote_ctf_fails_when_credentials_missing(monkeypatch, isolated_con
 
     # Simulate available methods but user supplies no credentials
 
-    async def _fake_methods(url):
+    async def _fake_methods(url, platform=None):
         return "dummy_client", ["creds"]
 
     monkeypatch.setattr(remote, "get_remote_credential_methods", _fake_methods)
@@ -228,6 +228,88 @@ def test_add_remote_ctf_fails_when_credentials_missing(monkeypatch, isolated_con
     added = add_remote_ctf(ctf)
     assert added is False
     assert not ctf_path.exists()
+
+
+def test_a_pinned_platform_is_handed_to_ctfbridge(monkeypatch):
+    """Detection is asked for only when nothing was pinned."""
+    import ctfbridge
+
+    import pwnv.utils.remote as remote
+
+    seen: dict = {}
+
+    async def _create_client(**kwargs):
+        seen.update(kwargs)
+        return "client"
+
+    monkeypatch.setattr(ctfbridge, "create_client", _create_client)
+
+    assert remote._run_async(remote.open_client("https://ctf", "rctf")) == "client"
+    assert seen == {"url": "https://ctf", "platform": "rctf"}
+
+    remote._run_async(remote.open_client("https://ctf"))
+    assert seen["platform"] == "auto"
+
+
+def test_the_platform_stored_on_a_ctf_is_used_for_every_later_call(monkeypatch):
+    """Pinning once is the point: it has to survive into the next command."""
+    import pwnv.utils.remote as remote
+
+    asked: list = []
+
+    async def _open(url, platform=None):
+        asked.append(platform)
+        raise RuntimeError("connection refused")
+
+    monkeypatch.setattr(remote, "open_client", _open)
+    ctf = CTF(
+        name="Pinned",
+        path=get_ctfs_path() / "pinned",
+        url="https://ctf.invalid",
+        platform="rctf",
+    )
+
+    assert add_remote_ctf(ctf) is False
+    assert sync_remote_ctf(ctf) is None
+    assert asked == ["rctf", "rctf"]
+
+
+def test_an_unknown_platform_is_rejected_with_the_ones_that_exist():
+    """A typo must not be sent to ctfbridge as if it were a platform."""
+    from typer.testing import CliRunner
+
+    from pwnv import app
+
+    result = CliRunner().invoke(
+        app,
+        ["ctf", "add", "Typo", "--url", "https://ctf.invalid", "--platform", "rctfd"],
+    )
+
+    assert result.exit_code == 1
+    assert "Unknown platform" in result.output
+    assert "rctf" in result.output
+
+
+def test_sync_pins_the_platform_on_the_ctf(monkeypatch):
+    """A CTF added before you knew what it was can be corrected in place."""
+    from typer.testing import CliRunner
+
+    import pwnv.utils as utils
+    import pwnv.utils.remote as remote
+    from pwnv import app
+    from pwnv.utils import get_ctfs
+
+    add_ctf(CTF(name="Late", path=get_ctfs_path() / "late", url="https://ctf.invalid"))
+    monkeypatch.setattr(
+        utils, "sync_remote_ctf", lambda ctf, **kwargs: dict(remote._EMPTY_SUMMARY)
+    )
+
+    result = CliRunner().invoke(
+        app, ["ctf", "sync", "--ctf", "Late", "--platform", "RCTF"]
+    )
+
+    assert result.exit_code == 0
+    assert get_ctfs()[0].platform == "rctf"
 
 
 @pytest.mark.parametrize(

@@ -69,16 +69,36 @@ file under the same name.
 custom frontend over a standard backend can defeat that, since there is no
 recognisable markup to match.
 
-If `pwnv ctf add` reports that it could not identify the platform, confirm what
-the API looks like before assuming it is unsupported:
+If `pwnv ctf add` reports that it could not open a client, confirm what the API
+looks like before assuming the platform is unsupported:
 
 ```bash
 curl -s https://ctf.example.org/api/v1/users/me
 ```
 
 An rCTF backend answers with `{"kind":"badToken", ...}`; CTFd answers from
-`/api/v1/challenges`. Report the URL upstream — detection is a small patch, and
-the platform support itself is usually already there.
+`/api/v1/challenges`. Once you know which one it is, say so and skip detection
+entirely:
+
+```bash
+pwnv ctf add ExampleCTF --url https://ctf.example.org/ --platform rctf
+```
+
+`--platform` takes any name `ctfbridge` ships a client for: `berg`,
+`cryptohack`, `ctfd`, `ept`, `gzctf`, `htb`, `pwnablekr`, `pwnabletw`,
+`pwnablexyz`, `pwncollege` and `rctf`. An unknown name is rejected with the list
+rather than attempted.
+
+The choice is stored on the CTF, so later syncs and flag submissions use it
+without repeating the flag. A CTF that was added before you knew what it was can
+be pinned after the fact:
+
+```bash
+pwnv ctf sync --ctf ExampleCTF --platform rctf
+```
+
+Detection failing for a public event is worth reporting upstream — it is a small
+patch, and the platform support itself is usually already there.
 
 ## When something fails and the message is too short
 

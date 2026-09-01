@@ -197,7 +197,7 @@ def add_remote_ctf(ctf: CTF, credentials: Dict[str, str | None] | None = None) -
     """Interactively add ``ctf`` by fetching its challenges remotely."""
     from pwnv.utils.crud import add_ctf, remove_ctf
 
-    client, methods = _run_async(get_remote_credential_methods(ctf.url))
+    client, methods = _run_async(get_remote_credential_methods(ctf.url, ctf.platform))
     if client is None or methods is None:
         return False
     creds = credentials or _ask_for_credentials(methods)
@@ -259,7 +259,7 @@ def sync_remote_ctf(
         warn("CTF has no remote URL configured.")
         return None
 
-    client, methods = _run_async(get_remote_credential_methods(ctf.url))
+    client, methods = _run_async(get_remote_credential_methods(ctf.url, ctf.platform))
     if client is None or methods is None:
         return None
 
@@ -329,21 +329,46 @@ def _retry_with_stored_credentials(client: Any, ctf: CTF):
     return _run_async(get_remote_challenges(client, ctf))
 
 
-async def get_remote_credential_methods(
-    url: str | None,
-) -> Tuple[Any, Any] | Tuple[None, None]:
-    """Retrieve supported authentication methods from the remote platform."""
+def known_platforms() -> list[str]:
+    """The platform names ctfbridge can be pinned to, in alphabetical order."""
+    from ctfbridge.platforms.registry import PLATFORM_CLIENTS
+
+    return sorted(PLATFORM_CLIENTS)
+
+
+async def open_client(url: str, platform: str | None = None) -> Any:
+    """
+    Connect to ``url``, detecting the platform unless one was pinned.
+
+    ctfbridge sniffs the platform from the site, and the sniff is a guess: an
+    instance behind a proxy, or one whose landing page was themed, can come out
+    as the wrong platform or as none at all. ``platform`` is the way past that,
+    and it is stored on the CTF so every later sync uses it too.
+    """
     from ctfbridge import create_client
 
+    return await create_client(url=url, platform=platform or "auto")
+
+
+async def get_remote_credential_methods(
+    url: str | None,
+    platform: str | None = None,
+) -> Tuple[Any, Any] | Tuple[None, None]:
+    """Retrieve supported authentication methods from the remote platform."""
     if not url:
         return None, None
 
     try:
-        client: Any = await create_client(url=url)
-    except Exception:
-        from pwnv.utils.ui import debug_traceback, error
+        client: Any = await open_client(url, platform)
+    except Exception as exc:
+        from pwnv.utils.ui import command, debug_traceback, error, info
 
-        error("Failed to get client.")
+        error(f"Could not open a client for {url}: {exc}")
+        if not platform:
+            info(
+                "If the platform was not recognised, name it: "
+                f"{command('pwnv ctf add NAME --url URL --platform rctf')}."
+            )
         debug_traceback()
         return None, None
     methods = await client.auth.get_supported_auth_methods()
@@ -600,8 +625,6 @@ async def add_remote_challenges(
 
 async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
     """Submit ``flag`` to the remote platform and return ``True`` if correct."""
-    from ctfbridge import create_client
-
     if not ctf.url:
         return False
 
@@ -615,7 +638,7 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
         )
         return False
 
-    client: Any = await create_client(ctf.url)
+    client: Any = await open_client(ctf.url, ctf.platform)
     if (ctf.path / ".session").exists():
         try:
             await client.session.load(str(ctf.path / ".session"))

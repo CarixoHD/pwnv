@@ -11,6 +11,29 @@ from pwnv.utils import (
 
 app = typer.Typer(no_args_is_help=True, help="Manage CTFs.")
 
+PLATFORM = typer.Option(
+    None,
+    "--platform",
+    help="Force the platform instead of letting ctfbridge detect it",
+)
+
+
+def _checked_platform(platform: str | None) -> str | None:
+    """Reject a platform name ctfbridge does not know, listing the ones it does."""
+    from pwnv.utils import error
+    from pwnv.utils.remote import known_platforms
+
+    if platform is None:
+        return None
+    name = platform.strip().lower()
+    if name not in known_platforms():
+        error(
+            f"Unknown platform '{platform}'. "
+            f"Pick one of: {', '.join(known_platforms())}."
+        )
+        raise typer.Exit(code=1)
+    return name
+
 
 @app.command()
 @config_exists()
@@ -22,6 +45,7 @@ def add(
     url: str | None = typer.Option(
         None, "--url", help="Remote CTF URL (skips the remote prompt)"
     ),
+    platform: str | None = PLATFORM,
     username: str | None = typer.Option(None, "--username", envvar="PWNV_CTF_USERNAME"),
     password: str | None = typer.Option(
         None, "--password", envvar="PWNV_CTF_PASSWORD", hide_input=True
@@ -50,10 +74,11 @@ def add(
 
         return
 
+    platform = _checked_platform(platform)
     credentials = {"username": username, "password": password, "token": token}
     if local:
-        if url:
-            error("--local cannot be combined with --url.")
+        if url or platform:
+            error("--local cannot be combined with --url or --platform.")
             raise typer.Exit(code=1)
         credentials = {"username": None, "password": None, "token": None}
 
@@ -77,7 +102,12 @@ def add(
     )
     if remote:
         if not add_remote_ctf(
-            CTF(name=name, path=path, url=url or prompt_text("Enter the URL:")),
+            CTF(
+                name=name,
+                path=path,
+                url=url or prompt_text("Enter the URL:"),
+                platform=platform,
+            ),
             credentials if has_credentials else None,
         ):
             return
@@ -259,6 +289,7 @@ def sync(
         "--refresh-attachments",
         help="Re-download attachments even when the local copies still match",
     ),
+    platform: str | None = PLATFORM,
 ) -> None:
     """Synchronizes challenges for a remote CTF."""
     from pwnv.utils import (
@@ -266,10 +297,12 @@ def sync(
         get_ctf_by_name,
         get_ctfs,
         get_current_ctf,
+        info,
         prompt_ctf_selection,
         render_sync_summary,
         success,
         sync_remote_ctf,
+        update_ctf,
         warn,
     )
 
@@ -290,6 +323,14 @@ def sync(
     if not chosen_ctf.url:
         warn("Selected CTF has no remote URL.")
         return
+
+    # Pinning it here is how a CTF added before the detection went wrong gets
+    # fixed: the choice is stored, so later syncs and flag submissions use it.
+    platform = _checked_platform(platform)
+    if platform and platform != chosen_ctf.platform:
+        chosen_ctf.platform = platform
+        update_ctf(chosen_ctf)
+        info(f"Talking to [cyan]{chosen_ctf.name}[/] as a {platform} instance.")
 
     if not watch:
         summary = sync_remote_ctf(

@@ -75,6 +75,7 @@ def _ctf_payload(ctf: CTF, challenges: int, solved: int) -> Dict[str, Any]:
         "name": ctf.name,
         "path": str(ctf.path),
         "url": ctf.url,
+        "platform": ctf.platform,
         "running": bool(ctf.running),
         "created_at": ctf.created_at.isoformat(),
         "challenges": challenges,

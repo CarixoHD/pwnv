@@ -288,6 +288,7 @@ pwnv ctf add [OPTIONS] NAME
 | :--- | :--- | :--- | :--- |
 | `--local` |  |  | Create a local CTF without prompting |
 | `--url` | `TEXT` |  | Remote CTF URL (skips the remote prompt) |
+| `--platform` | `TEXT` |  | Force the platform instead of letting ctfbridge detect it |
 | `--username` | `TEXT` |  | (env: `PWNV_CTF_USERNAME`) |
 | `--password` | `TEXT` |  | (env: `PWNV_CTF_PASSWORD`) |
 | `--token` | `TEXT` |  | (env: `PWNV_CTF_TOKEN`) |
@@ -356,6 +357,7 @@ pwnv ctf sync [OPTIONS]
 | `--watch`, `-w` |  |  | Keep polling for changes until you stop it |
 | `--interval` | `INTEGER RANGE` | `60` | Seconds between polls in --watch mode |
 | `--refresh-attachments` |  |  | Re-download attachments even when the local copies still match |
+| `--platform` | `TEXT` |  | Force the platform instead of letting ctfbridge detect it |
 
 ## `pwnv plugin`
 

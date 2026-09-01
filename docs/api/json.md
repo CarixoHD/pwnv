@@ -72,6 +72,7 @@ Emitted by `pwnv ctf info --json`.
       "name": "DemoCTF",
       "path": "/home/you/ctfs/DemoCTF",
       "url": "https://demo.ctfd.io/",
+      "platform": null,
       "running": true,
       "created_at": "2026-03-14T09:00:00",
       "challenges": 42,
@@ -80,6 +81,9 @@ Emitted by `pwnv ctf info --json`.
   ]
 }
 ```
+
+`platform` is the name a sync is pinned to, and is `null` for the usual case
+where ctfbridge detects it. See [pinning the platform](../guide/remote.md#when-detection-fails).
 
 ## `plugins`
 
