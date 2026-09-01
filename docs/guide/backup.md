@@ -74,6 +74,10 @@ answers that prompt too, so `--replace --force` discards without asking.
     the archive was made from — including the suffixes pwnv added when two
     challenges in one CTF wanted the same directory name.
 
+    Downloaded attachments are re-pointed at the copies that travelled with the
+    archive, so `challenge.attachments[0].local_path` in a solve script means
+    the file on this machine and not the path it had on the old one.
+
 ## Sharing without sharing secrets
 
 ```bash
@@ -90,6 +94,11 @@ pwnv workspace import shared.json
 An import merges: their solves are untouched, and records already present are
 skipped, which makes re-importing the same file a no-op. `--replace` is there
 for the rare case where you want the file to win outright.
+
+An event you both have is matched by name, even though your two workspaces gave
+it different ids. The CTF itself is skipped, and the challenges that arrive with
+it join the copy you already have — so importing a teammate's export of the CTF
+you are sitting in adds the challenges you are missing.
 
 ## Keeping a backup current
 

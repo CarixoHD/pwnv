@@ -5,7 +5,7 @@ import tarfile
 from pathlib import Path
 
 from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
-from pwnv.models import Init
+from pwnv.models import Challenge, Init
 
 _VENV_DIR_NAMES = (DEFAULT_PWNVENV_FOLDER_NAME, ".venv")
 
@@ -129,6 +129,36 @@ def _rebase_by_layout(
             / sanitize(challenge.name)
         )
         challenge.path.mkdir(parents=True, exist_ok=True)
+        _rebase_attachments(challenge, source_root, destination_root)
+
+
+def _rebase_attachments(
+    challenge: Challenge, source_root: Path | None, destination_root: Path
+) -> None:
+    """
+    Point downloaded attachments at the copies that travelled with the archive.
+
+    The files move with the challenge directory, but ``local_path`` is recorded
+    as an absolute path, so without this a solve script on the new machine reads
+    a path from the old one. An attachment stored outside the CTF root - or
+    arriving from an export, which carries no files at all - lands in the
+    challenge directory, where a re-download would put it.
+    """
+    extras = challenge.extras if isinstance(challenge.extras, dict) else {}
+    attachments = extras.get("attachments")
+    if not isinstance(attachments, list):
+        return
+
+    for attachment in attachments:
+        if not isinstance(attachment, dict) or not attachment.get("local_path"):
+            continue
+        local = Path(str(attachment["local_path"]))
+        moved = (
+            _relocate(local, source_root, destination_root)
+            if source_root is not None
+            else None
+        )
+        attachment["local_path"] = str(moved or challenge.path / local.name)
 
 
 def _relocate(path: Path, source_root: Path, destination_root: Path) -> Path | None:
@@ -208,6 +238,7 @@ def _rebase_by_name(imported: Init, ctfs_path: Path) -> None:
             / sanitize(challenge.name)
         )
         challenge.path.mkdir(parents=True, exist_ok=True)
+        _rebase_attachments(challenge, None, ctfs_path)
 
 
 def _merge_records(imported: Init, *, replace: bool) -> dict[str, int]:
@@ -236,22 +267,32 @@ def _merge_records(imported: Init, *, replace: bool) -> dict[str, int]:
         existing_challenges = cfg.setdefault("challenges", [])
         known_ctf_ids = {str(item["id"]) for item in existing_ctfs}
         known_ctf_names = {item["name"] for item in existing_ctfs}
+        ctf_id_by_name = {item["name"]: str(item["id"]) for item in existing_ctfs}
         known_challenge_ids = {str(item["id"]) for item in existing_challenges}
         known_challenge_paths = {str(item["path"]) for item in existing_challenges}
+        # Incoming CTF id -> the id the same event already has here.
+        adopted: dict[str, str] = {}
 
         for ctf_data in incoming.get("ctfs", []):
-            if (
-                str(ctf_data["id"]) in known_ctf_ids
-                or ctf_data["name"] in known_ctf_names
-            ):
+            incoming_id = str(ctf_data["id"])
+            if incoming_id in known_ctf_ids or ctf_data["name"] in known_ctf_names:
+                # The event is already here, under an id of its own if it was
+                # created rather than imported. Its challenges are re-pointed at
+                # that record, because otherwise they belong to no CTF in this
+                # config and are dropped - after their files have been copied.
+                adopted[incoming_id] = ctf_id_by_name.get(ctf_data["name"], incoming_id)
                 summary["ctfs_skipped"] += 1
                 continue
             existing_ctfs.append(ctf_data)
-            known_ctf_ids.add(str(ctf_data["id"]))
+            known_ctf_ids.add(incoming_id)
             known_ctf_names.add(ctf_data["name"])
+            ctf_id_by_name[ctf_data["name"]] = incoming_id
             summary["ctfs_added"] += 1
 
         for challenge_data in incoming.get("challenges", []):
+            challenge_data["ctf_id"] = adopted.get(
+                str(challenge_data["ctf_id"]), challenge_data["ctf_id"]
+            )
             if (
                 str(challenge_data["id"]) in known_challenge_ids
                 or str(challenge_data["path"]) in known_challenge_paths

@@ -2,6 +2,7 @@
 
 import json
 import tarfile
+from pathlib import Path
 
 import pytest
 import typer
@@ -354,7 +355,7 @@ def test_config_transaction_reads_fresh_state_under_the_lock():
 
 def test_corrupt_config_reports_cleanly_instead_of_traceback():
     """A truncated config must produce a readable error, not a JSONDecodeError."""
-    from pwnv.utils.config import _invalidate_cache, get_config_path, load_config
+    from pwnv.utils.config import get_config_path, _invalidate_cache, load_config
 
     get_config_path().write_text('{"ctfs": [', encoding="utf-8")
     _invalidate_cache()
@@ -600,3 +601,148 @@ def test_search_with_only_a_scope_lists_that_scope():
     assert result.exit_code == 0
     assert "listed" in result.output
     assert "elsewhere" not in result.output
+
+
+def _teammate_export(ctf_name: str, ctf_id: str, challenge_name: str) -> dict:
+    """An export as another machine would write it, rooted somewhere else."""
+    return {
+        "ctfs_path": "/somewhere/else",
+        "challenge_tags": [],
+        "ctfs": [
+            {
+                "id": ctf_id,
+                "name": ctf_name,
+                "created_at": "2026-01-01T00:00:00",
+                "path": f"/somewhere/else/{ctf_name.lower()}",
+                "running": 1,
+                "url": None,
+            }
+        ],
+        "challenges": [
+            {
+                "id": "33333333-3333-3333-3333-333333333333",
+                "name": challenge_name,
+                "flag": None,
+                "points": 50,
+                "solved": 0,
+                "category": 2,
+                "ctf_id": ctf_id,
+                "path": f"/somewhere/else/{ctf_name.lower()}/web/{challenge_name}",
+                "tags": [],
+                "extras": None,
+            }
+        ],
+    }
+
+
+def test_import_adopts_challenges_of_a_ctf_already_in_the_workspace(tmp_path):
+    """
+    Two people at the same event have the same CTF under two different ids.
+
+    The CTF is skipped as a duplicate, and its challenges used to be skipped
+    with it - they referred to an id this config had never heard of - so the
+    import silently added nothing at all.
+    """
+    from pwnv.utils import import_workspace
+
+    mine = CTF(name="SharedCTF", path=get_ctfs_path() / "sharedctf")
+    add_ctf(mine)
+
+    export_file = tmp_path / "theirs.json"
+    export_file.write_text(
+        json.dumps(
+            _teammate_export(
+                "SharedCTF", "44444444-4444-4444-4444-444444444444", "their-chal"
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    summary = import_workspace(export_file)
+
+    assert summary["ctfs_skipped"] == 1
+    assert summary["challenges_added"] == 1
+    challenges = get_challenges()
+    assert [ch.name for ch in challenges] == ["their-chal"]
+    # Adopted by the CTF that was already here, not by the id in the export.
+    assert challenges[0].ctf_id == mine.id
+
+
+def _backup_from_another_machine(tmp_path, old_root: str) -> Path:
+    """Write an archive whose config was recorded under ``old_root``."""
+    config = {
+        "ctfs_path": old_root,
+        "challenge_tags": [],
+        "ctfs": [
+            {
+                "id": "55555555-5555-5555-5555-555555555555",
+                "name": "OldCTF",
+                "created_at": "2026-01-01T00:00:00",
+                "path": f"{old_root}/oldctf",
+                "running": 1,
+                "url": None,
+            }
+        ],
+        "challenges": [
+            {
+                "id": "66666666-6666-6666-6666-666666666666",
+                "name": "chal",
+                "flag": None,
+                "points": 50,
+                "solved": 0,
+                "category": 2,
+                "ctf_id": "55555555-5555-5555-5555-555555555555",
+                "path": f"{old_root}/oldctf/web/chal",
+                "tags": [],
+                "extras": {
+                    "attachments": [
+                        {
+                            "name": "vuln",
+                            "local_path": f"{old_root}/oldctf/web/chal/vuln",
+                        }
+                    ]
+                },
+            }
+        ],
+    }
+
+    staged = tmp_path / "staged"
+    (staged / "config").mkdir(parents=True)
+    (staged / "config" / "pwnv_config.json").write_text(
+        json.dumps(config), encoding="utf-8"
+    )
+    challenge_dir = staged / "ctfs" / "oldctf" / "web" / "chal"
+    challenge_dir.mkdir(parents=True)
+    (challenge_dir / "vuln").write_text("ELF", encoding="utf-8")
+
+    archive = tmp_path / "backup.tar.gz"
+    with tarfile.open(archive, "w:gz") as tar:
+        tar.add(staged / "config", arcname="config")
+        tar.add(staged / "ctfs", arcname="ctfs")
+    return archive
+
+
+def test_restore_rebases_downloaded_attachments(tmp_path):
+    """An attachment must point at the copy that travelled with the archive."""
+    from pwnv.utils import restore_workspace
+
+    archive = _backup_from_another_machine(tmp_path, "/old/machine/CTFs")
+
+    restore_workspace(archive)
+
+    challenge = get_challenges()[0]
+    local = Path(challenge.extras["attachments"][0]["local_path"])
+    assert local.is_relative_to(get_ctfs_path())
+    assert local.read_text(encoding="utf-8") == "ELF"
+
+
+def test_restoring_something_that_is_not_an_archive_reports_cleanly(tmp_path):
+    """A wrong file must produce a message, not a tarfile traceback."""
+    bogus = tmp_path / "notes.tar.gz"
+    bogus.write_text("these are notes, not a tarball", encoding="utf-8")
+
+    result = CliRunner().invoke(app, ["workspace", "restore", str(bogus)])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, tarfile.TarError)
+    assert "could not be read" in result.output
