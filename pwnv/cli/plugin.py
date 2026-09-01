@@ -73,6 +73,7 @@ def remove() -> None:
     Removes a selected plugin file and updates the plugin selection accordingly.
     """
     from pwnv.core import plugin_manager
+    from pwnv.core.plugin_manager import plugin_name
     from pwnv.utils import (
         error,
         get_plugin_selection,
@@ -92,7 +93,7 @@ def remove() -> None:
 
     chosen_plugin = prompt_plugin_selection(plugins, "Select a plugin to remove:")
 
-    plugin_name_lower = chosen_plugin.__module__
+    plugin_name_lower = plugin_name(chosen_plugin)
     plugins_dir = get_plugins_directory()
     plugin_file = plugins_dir / f"{plugin_name_lower}.py"
 
@@ -175,6 +176,7 @@ def select() -> None:
     Selects the active plugin to be used for a chosen challenge category.
     """
     from pwnv.core import plugin_manager
+    from pwnv.core.plugin_manager import plugin_name
     from pwnv.utils import (
         error,
         prompt_category_selection,
@@ -198,7 +200,7 @@ def select() -> None:
     )
 
     if chosen_plugin:
-        plugin_stem = chosen_plugin.__module__
+        plugin_stem = plugin_name(chosen_plugin)
         set_selected_plugin_for_category(category, plugin_stem)
         success(
             f"Plugin '{plugin_stem}' is now selected for the "

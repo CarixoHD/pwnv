@@ -7,6 +7,7 @@ from pwnv.cli import (
     init_app,
     plugin_app,
     reset_app,
+    shell_app,
     solve_app,
     status_app,
     workspace_app,
@@ -18,6 +19,7 @@ app.add_typer(ctf_app, name="ctf")
 app.add_typer(doctor_app)
 app.add_typer(init_app)
 app.add_typer(reset_app)
+app.add_typer(shell_app)
 app.add_typer(solve_app)
 app.add_typer(status_app)
 app.add_typer(plugin_app, name="plugin")

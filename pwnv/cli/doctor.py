@@ -16,10 +16,18 @@ def doctor() -> None:
     from pydantic import ValidationError
     from rich import print
 
+    from pwnv.constants import DEFAULT_PACKAGES, DEFAULT_PYTHON_VERSION
     from pwnv.models import Init
-    from pwnv.utils import get_config_path, load_config
+    from pwnv.utils import (
+        ctf_env_path,
+        get_config_path,
+        installed_packages,
+        load_config,
+        venv_python,
+    )
 
     checks: list[tuple[bool, str]] = []
+    warnings: list[str] = []
     config_path = get_config_path()
     checks.append((config_path.is_file(), f"Configuration: {config_path}"))
 
@@ -31,6 +39,33 @@ def doctor() -> None:
 
     checks.append((config.ctfs_path.is_dir(), f"CTF root: {config.ctfs_path}"))
     checks.append((shutil.which("uv") is not None, "uv available in PATH"))
+
+    environment = ctf_env_path(config.ctfs_path)
+    interpreter = venv_python(environment)
+    if not interpreter.is_file():
+        warnings.append(
+            f"No CTF environment at {environment} - recreate it with "
+            f"`uv venv --python {DEFAULT_PYTHON_VERSION} {environment}` "
+            "or a fresh `pwnv init`"
+        )
+    else:
+        checks.append((True, f"CTF environment: {environment}"))
+        packages = installed_packages(interpreter)
+        if packages is None:
+            warnings.append(f"Could not inspect the packages in {environment}")
+        else:
+            missing = [
+                name
+                for name in DEFAULT_PACKAGES
+                if name.lower().replace("_", "-") not in packages
+            ]
+            if missing:
+                warnings.append(
+                    f"Missing default packages: {', '.join(missing)} - install them "
+                    f"with `uv pip install --python {interpreter} {' '.join(missing)}`"
+                )
+            else:
+                checks.append((True, "Default packages installed"))
 
     ctf_ids = [ctf.id for ctf in config.ctfs if ctf is not None]
     challenge_ids = [ch.id for ch in config.challenges if ch is not None]
@@ -68,6 +103,12 @@ def doctor() -> None:
         print(f"[{'green' if passed else 'red'}]{'✓' if passed else '✗'}[/] {message}")
         failures += not passed
 
-    print(f"\n{len(checks) - failures} passed, {failures} failed")
+    for message in warnings:
+        print(f"[yellow]![/] {message}")
+
+    summary = f"\n{len(checks) - failures} passed, {failures} failed"
+    if warnings:
+        summary += f", {len(warnings)} warning{'s' if len(warnings) > 1 else ''}"
+    print(summary)
     if failures:
         raise typer.Exit(code=1)

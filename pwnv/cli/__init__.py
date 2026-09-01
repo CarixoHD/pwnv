@@ -6,6 +6,7 @@ from pwnv.cli.init import app as init_app
 from pwnv.cli.note import app as note_app
 from pwnv.cli.plugin import app as plugin_app
 from pwnv.cli.reset import app as reset_app
+from pwnv.cli.shell import app as shell_app
 from pwnv.cli.solve import app as solve_app
 from pwnv.cli.status import app as status_app
 from pwnv.cli.workspace import app as workspace_app
@@ -19,6 +20,7 @@ __all__ = [
     "doctor_app",
     "init_app",
     "reset_app",
+    "shell_app",
     "solve_app",
     "status_app",
     "plugin_app",

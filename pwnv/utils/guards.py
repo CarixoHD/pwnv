@@ -1,6 +1,8 @@
 def _guard(predicate, msg):
     from functools import wraps
 
+    import typer
+
     from pwnv.utils.ui import warn
 
     def deco(fn):
@@ -9,6 +11,7 @@ def _guard(predicate, msg):
             if predicate():
                 return fn(*a, **kw)
             warn(msg)
+            raise typer.Exit(code=1)
 
         return wrapper
 

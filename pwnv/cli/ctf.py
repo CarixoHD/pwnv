@@ -50,10 +50,13 @@ def add(
         return
 
     credentials = {"username": username, "password": password, "token": token}
+    if local:
+        if url:
+            error("--local cannot be combined with --url.")
+            raise typer.Exit(code=1)
+        credentials = {"username": None, "password": None, "token": None}
+
     has_credentials = any(credentials.values())
-    if local and (url or has_credentials):
-        error("--local cannot be combined with remote URL or credential options.")
-        raise typer.Exit(code=1)
     if has_credentials and not url:
         error("--url is required when credentials are provided.")
         raise typer.Exit(code=1)
@@ -88,6 +91,7 @@ def add(
 @ctfs_exists()
 def remove(
     ctf: str | None = typer.Option(None, "--ctf", help="CTF name (skips selection)"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt"),
 ) -> None:
     """Removes an existing CTF and all its associated challenges."""
     from pwnv.utils import (
@@ -107,7 +111,7 @@ def remove(
     chosen_ctf = chosen_ctf or prompt_ctf_selection(
         get_ctfs(), "Select a CTF to remove:"
     )
-    if not prompt_confirm(
+    if not yes and not prompt_confirm(
         f"Remove CTF '{chosen_ctf.name}' and all its challenges?",
         default=False,
     ):
@@ -234,6 +238,17 @@ def start(
 @ctfs_exists()
 def sync(
     ctf: str | None = typer.Option(None, "--ctf", help="CTF name (skips selection)"),
+    watch: bool = typer.Option(
+        False, "--watch", "-w", help="Keep polling for changes until you stop it"
+    ),
+    interval: int = typer.Option(
+        60, "--interval", min=10, help="Seconds between polls in --watch mode"
+    ),
+    refresh_attachments: bool = typer.Option(
+        False,
+        "--refresh-attachments",
+        help="Re-download attachments even when the local copies still match",
+    ),
 ) -> None:
     """Synchronizes challenges for a remote CTF."""
     from pwnv.utils import (
@@ -242,6 +257,7 @@ def sync(
         get_ctfs,
         get_current_ctf,
         prompt_ctf_selection,
+        render_sync_summary,
         success,
         sync_remote_ctf,
         warn,
@@ -265,6 +281,56 @@ def sync(
         warn("Selected CTF has no remote URL.")
         return
 
-    if not sync_remote_ctf(chosen_ctf):
-        raise typer.Exit(code=1)
-    success(f"CTF [cyan]{chosen_ctf.name}[/] synced.")
+    if not watch:
+        summary = sync_remote_ctf(
+            chosen_ctf, refresh_attachments=refresh_attachments, report=False
+        )
+        if summary is None:
+            raise typer.Exit(code=1)
+        render_sync_summary(chosen_ctf.name, summary)
+        success(f"CTF [cyan]{chosen_ctf.name}[/] synced.")
+        return
+
+    _watch(chosen_ctf, interval=interval, refresh_attachments=refresh_attachments)
+
+
+_MAX_WATCH_INTERVAL = 15 * 60
+
+
+def _watch(ctf: CTF, *, interval: int, refresh_attachments: bool) -> None:
+    """Poll ``ctf`` until it stops running or the user interrupts."""
+    import time
+
+    from pwnv.utils import (
+        get_ctf_by_name,
+        info,
+        render_sync_summary,
+        sync_remote_ctf,
+        warn,
+    )
+
+    info(f"Watching [cyan]{ctf.name}[/] every {interval}s. Press Ctrl-C to stop.")
+    delay = interval
+    try:
+        while True:
+            summary = sync_remote_ctf(
+                ctf, refresh_attachments=refresh_attachments, report=False
+            )
+            refresh_attachments = False
+
+            if summary is None:
+                delay = min(delay * 2, _MAX_WATCH_INTERVAL)
+                warn(f"Sync failed. Retrying in {delay}s.")
+            else:
+                delay = interval
+                render_sync_summary(ctf.name, summary, quiet=True)
+
+            time.sleep(delay)
+
+            current = get_ctf_by_name(ctf.name)
+            if current is None or not current.running:
+                info(f"{ctf.name} is no longer running - stopping the watch.")
+                return
+            ctf = current
+    except KeyboardInterrupt:
+        info("Stopped watching.")

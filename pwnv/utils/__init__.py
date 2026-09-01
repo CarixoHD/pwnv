@@ -39,10 +39,12 @@ from pwnv.utils.guards import (
 )
 from pwnv.utils.plugin import (
     create_plugin_file,
+    get_bundled_examples_directory,
     get_plugin_selection,
     get_plugins_directory,
     get_selected_plugin_for_category,
     get_templates_directory,
+    install_bundled_examples,
     load_template_content,
     remove_selected_plugin_for_category,
     save_plugin_selection,
@@ -59,21 +61,25 @@ from pwnv.utils.selection import resolve_challenge
 from pwnv.utils.ui import (
     command,
     error,
+    format_service,
     info,
     prompt_category_selection,
     prompt_challenge_selection,
     prompt_confirm,
     prompt_ctf_selection,
     prompt_fuzzy_select,
+    prompt_on_tty,
     prompt_plugin_selection,
     prompt_tags_selection,
     prompt_text,
+    render_sync_summary,
     show_challenge,
     show_ctf,
     show_plugin,
     success,
     warn,
 )
+from pwnv.utils.venv import ctf_env_path, installed_packages, venv_python
 from pwnv.utils.workspace import backup_workspace, export_workspace, import_workspace
 
 __all__ = [
@@ -124,12 +130,15 @@ __all__ = [
     "prompt_confirm",
     "error",
     "prompt_fuzzy_select",
+    "prompt_on_tty",
     "prompt_category_selection",
     "prompt_challenge_selection",
     "prompt_ctf_selection",
     "prompt_plugin_selection",
     "prompt_tags_selection",
     "prompt_text",
+    "format_service",
+    "render_sync_summary",
     "show_challenge",
     "show_ctf",
     "success",
@@ -138,8 +147,10 @@ __all__ = [
     "command",
     "show_plugin",
     # plugin
+    "get_bundled_examples_directory",
     "get_plugins_directory",
     "get_templates_directory",
+    "install_bundled_examples",
     "load_template_content",
     "get_plugin_selection",
     "set_selected_plugin_for_category",
@@ -147,6 +158,10 @@ __all__ = [
     "remove_selected_plugin_for_category",
     "save_plugin_selection",
     "create_plugin_file",
+    # venv
+    "ctf_env_path",
+    "installed_packages",
+    "venv_python",
     # workspace
     "backup_workspace",
     "export_workspace",

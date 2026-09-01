@@ -41,18 +41,35 @@ def export_(destination: Path = typer.Argument(Path("pwnv-export.json"))) -> Non
 def import_(
     source: Path,
     force: bool = typer.Option(False, "--force", "-f"),
+    replace: bool = typer.Option(
+        False,
+        "--replace",
+        help="Discard the current metadata instead of merging into it",
+    ),
 ) -> None:
-    """Replace current metadata with a portable export."""
+    """Merge a portable export into the current workspace."""
     from pwnv.utils import (
         get_challenges,
         get_ctfs,
         import_workspace,
+        info,
         prompt_confirm,
         success,
     )
 
-    if (get_ctfs() or get_challenges()) and not force:
-        if not prompt_confirm("Replace the current workspace metadata?", default=False):
+    if replace and (get_ctfs() or get_challenges()) and not force:
+        if not prompt_confirm(
+            "Discard the current workspace metadata and replace it?", default=False
+        ):
             raise typer.Abort()
-    import_workspace(source)
+
+    summary = import_workspace(source, replace=replace)
     success(f"Workspace metadata imported from {source}")
+    if replace:
+        return
+    info(
+        f"Added {summary['ctfs_added']} CTFs and "
+        f"{summary['challenges_added']} challenges; "
+        f"skipped {summary['ctfs_skipped']} CTFs and "
+        f"{summary['challenges_skipped']} already present."
+    )

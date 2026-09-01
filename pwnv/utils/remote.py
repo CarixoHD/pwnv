@@ -7,24 +7,52 @@ from typing import Any, Dict, Tuple
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category
 
-_keyword_map = {
-    "pwn": Category.pwn,
-    "web": Category.web,
-    "rev": Category.rev,
-    "reverse": Category.rev,
-    "crypto": Category.crypto,
-    "cryptography": Category.crypto,
-    "stego": Category.steg,
-    "steganography": Category.steg,
-    "misc": Category.misc,
-    "miscellaneous": Category.misc,
-    "osint": Category.osint,
-    "forensics": Category.forensics,
-    "hardware": Category.hardware,
-    "mobile": Category.mobile,
-    "game": Category.game,
-    "blockchain": Category.blockchain,
-}
+_keyword_map: "list[tuple[str, Category]]" = [
+    ("web exploitation", Category.web),
+    ("web exploit", Category.web),
+    ("binary exploitation", Category.pwn),
+    ("smart contract", Category.blockchain),
+    ("reverse engineering", Category.rev),
+    ("exploitation", Category.pwn),
+    ("pwnable", Category.pwn),
+    ("pwn", Category.pwn),
+    ("binex", Category.pwn),
+    ("blockchain", Category.blockchain),
+    ("web3", Category.blockchain),
+    ("defi", Category.blockchain),
+    ("web", Category.web),
+    ("reverse", Category.rev),
+    ("reversing", Category.rev),
+    ("rev", Category.rev),
+    ("re", Category.rev),
+    ("cryptography", Category.crypto),
+    ("crypto", Category.crypto),
+    ("steganography", Category.steg),
+    ("stego", Category.steg),
+    ("steg", Category.steg),
+    ("forensics", Category.forensics),
+    ("forensic", Category.forensics),
+    ("df/ir", Category.forensics),
+    ("dfir", Category.forensics),
+    ("osint", Category.osint),
+    ("recon", Category.osint),
+    ("hardware", Category.hardware),
+    ("embedded", Category.hardware),
+    ("radio", Category.hardware),
+    ("sdr", Category.hardware),
+    ("ics", Category.hardware),
+    ("mobile", Category.mobile),
+    ("android", Category.mobile),
+    ("ios", Category.mobile),
+    ("game", Category.game),
+    ("gaming", Category.game),
+    ("miscellaneous", Category.misc),
+    ("misc", Category.misc),
+    ("warmup", Category.misc),
+    ("sanity", Category.misc),
+    ("intro", Category.misc),
+    ("beginner", Category.misc),
+]
 
 
 def sanitize(name: str) -> str:
@@ -41,9 +69,31 @@ def normalise_category(raw: str) -> Category:
     """Best effort mapping from a textual category to :class:`Category`."""
     import re
 
-    clean = re.sub(r"\\(.*?\\)", "", raw).strip().lower()
-    key = re.split(r"[^a-z]+", clean, maxsplit=1)[0]
-    return _keyword_map.get(key, Category.other)
+    if not raw:
+        return Category.other
+
+    clean = re.sub(r"[^a-z0-9]+", " ", raw.lower()).strip()
+    if not clean:
+        return Category.other
+
+    for keyword, category in _keyword_map:
+        if clean == keyword:
+            return category
+
+    for keyword, category in _keyword_map:
+        if " " in keyword and keyword in clean:
+            return category
+
+    tokens = clean.split()
+    for keyword, category in _keyword_map:
+        if " " not in keyword and keyword in tokens:
+            return category
+
+    for keyword, category in _keyword_map:
+        if len(keyword) >= 3 and " " not in keyword and keyword in clean:
+            return category
+
+    return Category.other
 
 
 def _ask_for_credentials(methods) -> Dict[str, str | None]:
@@ -92,10 +142,34 @@ def _load_credentials(path: Path) -> Dict[str, str | None]:
     }
 
 
+def protect_ctf_secrets(ctf_path: Path) -> None:
+    """
+    Drop a ``.gitignore`` next to a CTF's credentials.
+    """
+    gitignore = ctf_path / ".gitignore"
+    entries = (".env", ".session", ".venv/", ".pwnvenv/")
+    try:
+        existing = (
+            gitignore.read_text(encoding="utf-8").splitlines()
+            if gitignore.is_file()
+            else []
+        )
+        missing = [entry for entry in entries if entry not in existing]
+        if not missing:
+            return
+        ctf_path.mkdir(parents=True, exist_ok=True)
+        lines = existing + missing if existing else list(entries)
+        gitignore.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
 def _save_credentials(path: Path, creds: Dict[str, str | None]) -> None:
     """Store credentials in a user-readable dotenv file."""
     from dotenv import set_key
 
+    path.parent.mkdir(parents=True, exist_ok=True)
+    protect_ctf_secrets(path.parent)
     path.touch(mode=0o600, exist_ok=True)
     path.chmod(0o600)
     for name, key in (
@@ -130,15 +204,30 @@ def add_remote_ctf(ctf: CTF, credentials: Dict[str, str | None] | None = None) -
     if not creds:
         return False
 
+    preexisting_dir = ctf.path.exists()
+
     add_ctf(ctf)
 
+    def _rollback() -> None:
+        if preexisting_dir:
+            from pwnv.utils.config import config_transaction
+            from pwnv.utils.ui import warn
+
+            with config_transaction() as cfg:
+                cfg["ctfs"] = [
+                    item for item in cfg.get("ctfs", []) if item["id"] != str(ctf.id)
+                ]
+            warn(f"Left the existing directory {ctf.path} untouched.")
+        else:
+            remove_ctf(ctf)
+
     if not _run_async(create_remote_session(client, creds, ctf)):
-        remove_ctf(ctf)
+        _rollback()
         return False
 
     challenges = _run_async(get_remote_challenges(client, ctf))
     if challenges is None:
-        remove_ctf(ctf)
+        _rollback()
         return False
 
     _save_credentials(ctf.path / ".env", creds)
@@ -147,17 +236,32 @@ def add_remote_ctf(ctf: CTF, credentials: Dict[str, str | None] | None = None) -
     return True
 
 
-def sync_remote_ctf(ctf: CTF) -> bool:
-    """Fetch new challenges for ``ctf`` from its remote platform."""
+_EMPTY_SUMMARY: Dict[str, Any] = {
+    "added": [],
+    "updated": [],
+    "unchanged": 0,
+    "attachments_downloaded": [],
+    "attachments_reused": [],
+}
+
+
+def sync_remote_ctf(
+    ctf: CTF, *, refresh_attachments: bool = False, report: bool = True
+) -> Dict[str, Any] | None:
+    """
+    Fetch new challenges for ``ctf`` from its remote platform.
+
+    Returns a summary of what changed, or ``None`` when the sync failed.
+    """
     from pwnv.utils.ui import info, warn
 
     if not ctf.url:
         warn("CTF has no remote URL configured.")
-        return False
+        return None
 
     client, methods = _run_async(get_remote_credential_methods(ctf.url))
     if client is None or methods is None:
-        return False
+        return None
 
     creds: Dict[str, str | None] = {}
     if (ctf.path / ".session").exists():
@@ -167,30 +271,62 @@ def sync_remote_ctf(ctf: CTF) -> bool:
             warn(f"Ignoring broken session cookie ({e}).")
             creds = _ask_for_credentials(methods)
             if not creds:
-                return False
+                return None
             if not _run_async(create_remote_session(client, creds, ctf)):
-                return False
+                return None
     elif (ctf.path / ".env").exists():
         creds = _load_credentials(ctf.path / ".env")
         if not _run_async(create_remote_session(client, creds, ctf)):
-            return False
+            return None
     else:
         creds = _ask_for_credentials(methods)
         if not creds:
-            return False
+            return None
         if not _run_async(create_remote_session(client, creds, ctf)):
-            return False
+            return None
 
     challenges = _run_async(get_remote_challenges(client, ctf))
     if challenges is None:
-        return False
+        challenges = _retry_with_stored_credentials(client, ctf)
+    if challenges is None:
+        return None
 
     if not challenges:
         info("No challenges found.")
-        return True
+        return dict(_EMPTY_SUMMARY)
 
-    _run_async(add_remote_challenges(client, ctf, challenges))
-    return True
+    return _run_async(
+        add_remote_challenges(
+            client,
+            ctf,
+            challenges,
+            refresh_attachments=refresh_attachments,
+            report=report,
+        )
+    )
+
+
+def _stored_credentials(ctf: CTF) -> Dict[str, str | None]:
+    """Return credentials saved for ``ctf``, if any."""
+    env_path = ctf.path / ".env"
+    if not env_path.exists():
+        return {}
+    creds = _load_credentials(env_path)
+    return creds if any(creds.values()) else {}
+
+
+def _retry_with_stored_credentials(client: Any, ctf: CTF):
+    """Re-login with saved credentials and refetch challenges once."""
+    from pwnv.utils.ui import info
+
+    creds = _stored_credentials(ctf)
+    if not creds:
+        return None
+
+    info("Session looks expired - re-authenticating with stored credentials.")
+    if not _run_async(create_remote_session(client, creds, ctf)):
+        return None
+    return _run_async(get_remote_challenges(client, ctf))
 
 
 async def get_remote_credential_methods(
@@ -219,6 +355,8 @@ async def create_remote_session(
     """Create and store an authenticated session."""
     try:
         await client.auth.login(**{k: v for k, v in creds.items() if v is not None})
+        ctf.path.mkdir(parents=True, exist_ok=True)
+        protect_ctf_secrets(ctf.path)
         await client.session.save(str(ctf.path / ".session"))
         return True
     except Exception:
@@ -241,42 +379,160 @@ async def get_remote_challenges(client: Any, ctf: CTF):
         return None
 
 
-async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
-    """Create or update fetched challenges and download their attachments."""
+def _slug_of(challenge: Challenge) -> Any:
+    """Return the remote id recorded for ``challenge``, if it has one."""
+    return challenge.extras.get("slug") if isinstance(challenge.extras, dict) else None
+
+
+def _file_digest(path: Path) -> str | None:
+    """Return the sha256 of ``path``, or ``None`` if it cannot be read."""
+    import hashlib
+
+    try:
+        with open(path, "rb") as handle:
+            return hashlib.file_digest(handle, "sha256").hexdigest()
+    except OSError:
+        return None
+
+
+def _fingerprint_attachments(attachments) -> "list[dict]":
+    """Dump attachments, recording a digest of whatever landed on disk."""
+    dumped = []
+    for attachment in attachments:
+        data = attachment.model_dump(mode="json")
+        local = data.get("local_path")
+        if local and (digest := _file_digest(Path(local))):
+            data["sha256"] = digest
+        dumped.append(data)
+    return dumped
+
+
+def _attachments_are_current(remote, stored) -> bool:
+    """
+    Report whether every published attachment is already on disk, byte for byte.
+
+    Platforms do not publish checksums, so the comparison is against a digest
+    pwnv recorded at download time. Size is checked first because it is free.
+    Re-downloading 40 MB of images on every poll is the thing to avoid here.
+    """
+    if not remote:
+        return True
+
+    by_name = {str(item.get("name")): item for item in stored if isinstance(item, dict)}
+    for attachment in remote:
+        entry = by_name.get(str(getattr(attachment, "name", "")))
+        if entry is None:
+            return False
+        local = entry.get("local_path")
+        digest = entry.get("sha256")
+        if not local or not digest:
+            return False
+        size = getattr(attachment, "size_bytes", None)
+        if size is not None and entry.get("size_bytes") not in (None, size):
+            return False
+        local_path = Path(local)
+        if not local_path.is_file() or _file_digest(local_path) != digest:
+            return False
+    return True
+
+
+def _unique_challenge_path(preferred: Path, taken: "list[Challenge]") -> Path:
+    """Return ``preferred``, suffixed if another challenge already claims it."""
+    claimed = {item.path for item in taken}
+    if preferred not in claimed:
+        return preferred
+    for suffix in range(2, 100):
+        candidate = preferred.with_name(f"{preferred.name}-{suffix}")
+        if candidate not in claimed:
+            return candidate
+    return preferred
+
+
+async def add_remote_challenges(
+    client,
+    ctf: CTF,
+    challenges,
+    *,
+    refresh_attachments: bool = False,
+    report: bool = True,
+) -> Dict[str, Any]:
+    """
+    Create or update fetched challenges and download their attachments.
+
+    Returns a summary of what changed so callers can show a diff instead of
+    replaying every challenge on every sync.
+    """
     from pwnv.models import Challenge
     from pwnv.models.challenge import Solved
     from pwnv.utils.crud import add_challenge, challenges_for_ctf, update_challenge
-    from pwnv.utils.ui import success
+    from pwnv.utils.ui import success, warn
+
+    summary: Dict[str, Any] = {
+        "added": [],
+        "updated": [],
+        "unchanged": 0,
+        "attachments_downloaded": [],
+        "attachments_reused": [],
+    }
 
     existing_challenges = challenges_for_ctf(ctf)
     for ch in challenges:
         category = normalise_category(ch.category)
-        name = sanitize(ch.name)
-        existing = next(
-            (
-                item
-                for item in existing_challenges
-                if (isinstance(item.extras, dict) and item.extras.get("slug") == ch.id)
-                or sanitize(item.name) == name
-            ),
-            None,
+        name = ch.name or sanitize(ch.name)
+        slug_dir = sanitize(ch.name)
+        existing = None
+        if ch.id is not None:
+            existing = next(
+                (item for item in existing_challenges if _slug_of(item) == ch.id),
+                None,
+            )
+        if existing is None:
+            existing = next(
+                (
+                    item
+                    for item in existing_challenges
+                    if _slug_of(item) is None and sanitize(item.name) == slug_dir
+                ),
+                None,
+            )
+
+        if existing is not None:
+            path = existing.path
+        else:
+            path = _unique_challenge_path(
+                ctf.path / category.name / slug_dir, existing_challenges
+            )
+
+        old_extras = (
+            existing.extras
+            if existing is not None and isinstance(existing.extras, dict)
+            else {}
         )
-        path = existing.path if existing else ctf.path / category.name / name
+        stored_attachments = old_extras.get("attachments") or []
+        remote_attachments = list(getattr(ch, "attachments", None) or [])
+        reuse = not refresh_attachments and _attachments_are_current(
+            remote_attachments, stored_attachments
+        )
 
-        try:
-            ch = await client.attachments.download_all(ch, save_dir=path)
-        except Exception:
-            from pwnv.utils.ui import warn
+        if reuse:
+            attachments = stored_attachments
+            if remote_attachments:
+                summary["attachments_reused"].append(name)
+        else:
+            try:
+                ch = await client.attachments.download_all(ch, save_dir=path)
+            except Exception:
+                warn(f"Skipped attachments for {name}")
+            attachments = _fingerprint_attachments(
+                getattr(ch, "attachments", None) or []
+            )
+            if attachments:
+                summary["attachments_downloaded"].append(name)
 
-            warn(f"Skipped attachments for {name}")
-
-        attachments = [
-            att.model_dump(mode="json") for att in getattr(ch, "attachments", [])
-        ]
         services = [svc.model_dump(mode="json") for svc in getattr(ch, "services", [])]
 
         extras = {
-            **(existing.extras if existing and existing.extras else {}),
+            **old_extras,
             **{
                 "slug": ch.id,
                 "description": ch.description,
@@ -286,13 +542,35 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
             },
         }
         if existing:
+            changes = []
+            if existing.points != ch.value:
+                changes.append(f"{existing.points} -> {ch.value} pts")
+            if ch.solved and existing.solved != Solved.solved:
+                changes.append("solved on platform")
+            if existing.category != category:
+                changes.append(f"{existing.category.name} -> {category.name}")
+            if existing.name != name:
+                changes.append(f"renamed from '{existing.name}'")
+            if (ch.description or None) != (old_extras.get("description") or None):
+                changes.append("description changed")
+            if not reuse and remote_attachments:
+                changes.append("attachments updated")
+            if new_tags := set(ch.tags or []) - set(existing.tags or []):
+                changes.append("new tags: " + ", ".join(sorted(new_tags)))
+
+            existing.name = name
             existing.category = category
             existing.points = ch.value
             existing.solved = Solved.solved if ch.solved else existing.solved
             existing.extras = extras
             existing.tags = sorted(set(existing.tags or []) | set(ch.tags or []))
             update_challenge(existing)
-            success(f"{existing.name} ({existing.points} pts) updated")
+            if changes:
+                summary["updated"].append({"name": name, "changes": changes})
+            else:
+                summary["unchanged"] += 1
+            if report:
+                success(f"{existing.name} ({existing.points} pts) updated")
             continue
 
         challenge = Challenge(
@@ -307,8 +585,11 @@ async def add_remote_challenges(client, ctf: CTF, challenges) -> None:
         )
         add_challenge(challenge)
         existing_challenges.append(challenge)
+        summary["added"].append(name)
+        if report:
+            success(f"{challenge.name} ({challenge.points} pts) added")
 
-        success(f"{challenge.name} ({challenge.points} pts) added")
+    return summary
 
 
 async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
@@ -316,6 +597,16 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
     from ctfbridge import create_client
 
     if not ctf.url:
+        return False
+
+    slug = challenge.extras.get("slug") if isinstance(challenge.extras, dict) else None
+    if slug is None:
+        from pwnv.utils.ui import error
+
+        error(
+            f"'{challenge.name}' has no remote id - it was created locally, "
+            "so there is nothing to submit to. Run `pwnv ctf sync` first."
+        )
         return False
 
     client: Any = await create_client(ctf.url)
@@ -335,26 +626,31 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
         if not await create_remote_session(client, creds, ctf):
             return False
 
-    try:
-        slug = (
-            challenge.extras.get("slug") if isinstance(challenge.extras, dict) else None
-        )
-        if slug is None:
-            return False
+    async def _submit() -> bool:
         res = await client.challenges.submit(slug, flag)
         if res.correct:
             from pwnv.utils.ui import success
 
             success(f"Flag [cyan]{flag}[/] accepted!")
-
             return True
-        else:
-            from pwnv.utils.ui import error
-
-            error(f"Flag [cyan]{flag}[/] incorrect")
-            return False
-    except Exception:
         from pwnv.utils.ui import error
 
-        error(f"Failed to submit flag '{flag}'.")
+        error(f"Flag [cyan]{flag}[/] incorrect")
         return False
+
+    try:
+        return await _submit()
+    except Exception:
+        pass
+
+    creds = _stored_credentials(ctf)
+    if creds and await create_remote_session(client, creds, ctf):
+        try:
+            return await _submit()
+        except Exception:
+            pass
+
+    from pwnv.utils.ui import error
+
+    error(f"Failed to submit flag '{flag}'.")
+    return False

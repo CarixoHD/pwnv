@@ -16,9 +16,11 @@
 | :--- | :--- |
 | 🗂️ **Structured Workspace** | Establishes a consistent and organized directory structure for CTFs and their associated challenges. |
 | 📦 **Virtual Environments** | Manages isolated Python virtual environments for CTF workspaces, utilizing [`uv`](https://github.com/astral-sh/uv) for rapid setup. |
-| 🔄 **Remote Synchronization**| Enables fetching challenges, descriptions, and attachments from CTFd instances using the [`ctfbridge`](https://pypi.org/project/ctfbridge) library. |
+| 🔄 **Remote Synchronization**| Enables fetching challenges, descriptions, and attachments from CTFd instances using the [`ctfbridge`](https://pypi.org/project/ctfbridge) library. `--watch` polls a live event and reports only what changed. |
 | 🚀 **Remote Flag Submission**| Allows direct submission of flags to remote CTF platforms via the command line. |
-| 🔌 **Plugin Architecture** | Supports custom Python plugins for automating challenge setup based on predefined categories (e.g., pwn, web). |
+| 🔌 **Plugin Architecture** | Supports custom Python plugins for automating challenge setup based on predefined categories (e.g., pwn, web). Ships with a working example, installed on `pwnv init`. |
+| 🧭 **Fast Navigation** | `pwncd <name>` jumps straight to a challenge directory, with fuzzy selection when you omit the name. |
+| 📊 **Progress Overview** | `pwnv status` reports solves and points across the workspace, or per category with what is left to do. |
 | 🏷️ **Challenge Tagging** | Provides functionality to tag solved challenges with relevant keywords for efficient searching and retrieval. |
 | ✨ **Interactive Interface**| Employs fuzzy finders and interactive prompts for intuitive navigation and user input. |
 
@@ -68,7 +70,8 @@ pip install --editable .
     ```
 4.  **Navigate to the challenge directory and begin work:**
     ```bash
-    cd ~/CTFs/ExampleCTF_Local/pwn/RopMaster/
+    eval "$(pwnv shell-init)"   # add this line to your shell rc file
+    pwncd RopMaster
     # Begin solving the challenge.
     ```
 5.  **Mark the challenge as solved:**
@@ -76,6 +79,32 @@ pip install --editable .
     pwnv solve --flag "FLAG{example_flag}"
     # Enter tags when prompted (e.g., "buffer-overflow, ROP").
     ```
+6.  **Check where you stand:**
+    ```bash
+    pwnv status --detail
+    ```
+
+-----
+
+## 🧰 Devcontainer
+
+This repo includes a devcontainer configuration that isolates `pwnv` state
+inside the workspace. Opening the folder in a devcontainer-aware editor builds
+the container and runs [`.devcontainer/post-create.sh`](.devcontainer/post-create.sh),
+which:
+
+  * installs the system tooling `pwntools` expects (`binutils`, `gdb`, `patchelf`, ...),
+  * syncs the development environment with `uv sync --locked`,
+  * installs the Claude Code CLI (devcontainer feature) and the Codex CLI (`@openai/codex`),
+  * bootstraps the CTF workspace with `pwnv init --yes --ctfs-folder .pwnv/CTF`.
+
+Config and CTF data stay under `.pwnv/` (already gitignored), and the `.venv`,
+uv cache, and agent credentials live in named volumes so they survive rebuilds.
+The editor extensions for Claude Code, Codex, Python, Ruff, and mypy are
+installed automatically.
+
+Set `PWNV_SKIP_CTF_INIT=1` before the container is created to skip the CTF
+environment bootstrap (it downloads `angr` and friends on first build).
 
 -----
 
@@ -127,6 +156,8 @@ The plugin system allows for the execution of category-specific Python scripts d
   * **Plugin Scripts:** Reside within the `plugins` folder in your `pwnv` configuration directory (typically `~/.config/pwnv/plugins/`). Each `.py` file represents a potential plugin.
   * **Template Files:** Associated template files (e.g., `solve.py` skeletons) are stored in the `templates` folder, organized by category (e.g., `~/.config/pwnv/templates/pwn/`).
 
+`pwnv init` seeds both folders with the examples that ship with `pwnv` (a pwn plugin and a pwntools ROP template) and selects them for their categories, so `pwnv challenge add` produces a working solver script out of the box. They are ordinary files: edit them, or pass `--no-examples` to start empty. Re-running the copy never overwrites a file you have changed, and a category you have already assigned keeps your plugin.
+
 ### Plugin Structure
 
 A `pwnv` plugin is a Python class that inherits from `pwnv.plugins.ChallengePlugin`. It must be decorated with `@register_plugin` to be discoverable.
@@ -173,30 +204,33 @@ The following table summarizes the available commands. For detailed usage, appen
 
 | Command | Description |
 | :--- | :--- |
-| `pwnv init` | Initializes the `pwnv` environment and workspace. |
+| `pwnv init` | Initializes the `pwnv` environment and workspace, seeding it with the bundled example plugins and templates. Use `--python` to choose the interpreter (default 3.13), `--no-install` to skip the default packages, and `--no-examples` to skip the examples. |
 | `pwnv reset` | Removes all `pwnv` configurations and CTF data (exercise caution). |
 | | |
 | `pwnv ctf add <name>` | Adds a new CTF event (local or remote). |
-| `pwnv ctf remove` | Deletes a CTF event and its challenges. |
+| `pwnv ctf remove` | Deletes a CTF event and its challenges. `--yes` skips the prompt. |
 | `pwnv ctf info` | Displays metadata for a selected CTF. |
-| `pwnv ctf sync` | Adds and updates challenges from a remote CTF. |
+| `pwnv ctf sync` | Adds and updates challenges from a remote CTF, reporting only what changed. `--watch` polls until the CTF stops. |
 | `pwnv ctf start` | Sets a CTF's status to 'running'. |
 | `pwnv ctf stop` | Sets a CTF's status to 'stopped'. |
 | | |
 | `pwnv challenge add <name>`| Adds a new challenge, triggering relevant plugins. |
-| `pwnv challenge remove` | Deletes a specific challenge. |
-| `pwnv challenge info` | Displays metadata for a selected challenge. |
+| `pwnv challenge remove` | Deletes a specific challenge. `--yes` skips the prompt. |
+| `pwnv challenge info` | Displays metadata for a selected challenge, including the fetched description, connection string, and attachments. |
 | `pwnv challenge filter` | Lists solved challenges based on specified tags. |
-| `pwnv challenge search <QUERY>` | Searches names, descriptions, categories, and tags. |
+| `pwnv challenge search <QUERY>` | Searches names, descriptions, categories, and tags. With only `--ctf` it lists that CTF. |
 | `pwnv challenge note add <TEXT>` | Adds a timestamped Markdown note. |
 | `pwnv challenge note show` | Displays the current challenge notes. |
 | `pwnv challenge env add <PACKAGE...>` | Installs packages in a challenge-local environment. |
 | `pwnv challenge env run <COMMAND...>` | Runs a command in the challenge environment. |
+| `pwnv challenge scaffold` | Runs a category's plugin and template against an existing challenge. Never overwrites without `--force`. |
+| `pwnv challenge path [NAME]` | Prints a challenge directory and nothing else, for `cd "$(...)"`. |
 | | |
-| `pwnv solve` | Marks a challenge as solved and handles flag submission/tagging. |
+| `pwnv solve` | Submits the flag and marks the challenge solved. A flag the platform rejects is recorded in the history but leaves the challenge unsolved, and exits non-zero. |
 | `pwnv solve --history` | Displays submission history with flags redacted. |
-| `pwnv status` | Displays solved and point progress for the workspace. |
-| `pwnv doctor` | Checks workspace configuration, paths, tools, and consistency. |
+| `pwnv status` | Displays solved and point progress for the workspace. `--detail` adds per-category progress, recent solves, and what is left. |
+| `pwnv shell-init` | Prints the shell function that defines `pwncd`. |
+| `pwnv doctor` | Checks workspace configuration, paths, tools, the CTF environment, and consistency. |
 | | |
 | `pwnv plugin add <name>` | Creates a new plugin and its associated template. |
 | `pwnv plugin remove` | Deletes an existing plugin file. |
@@ -204,7 +238,7 @@ The following table summarizes the available commands. For detailed usage, appen
 | `pwnv plugin select` | Assigns a specific plugin to a challenge category. |
 | `pwnv workspace backup [PATH]` | Creates a full archive, including challenge files and credentials. |
 | `pwnv workspace export [PATH]` | Exports portable workspace metadata without files or credentials. |
-| `pwnv workspace import <PATH>` | Imports metadata and rebases paths into the current workspace. |
+| `pwnv workspace import <PATH>` | Merges metadata into the current workspace, rebasing paths. Use `--replace` to discard local metadata instead. |
 
 ### Noninteractive usage
 
@@ -217,9 +251,12 @@ pwnv ctf sync --ctf DemoCTF
 pwnv challenge add RopMaster --ctf ExampleCTF --category pwn
 pwnv challenge search rop --ctf ExampleCTF
 pwnv challenge search --category pwn --tag rop --min-points 100 --unsolved
+pwnv challenge scaffold --challenge RopMaster --ctf ExampleCTF --category pwn --force
+pwnv challenge path RopMaster --ctf ExampleCTF
+pwnv challenge remove --challenge RopMaster --ctf ExampleCTF --yes
 pwnv solve --flag 'FLAG{example}' --challenge RopMaster --tags pwn,rop
 pwnv solve --history --challenge RopMaster --ctf ExampleCTF
-pwnv status --ctf ExampleCTF
+pwnv status --ctf ExampleCTF --detail --json
 pwnv doctor
 pwnv workspace backup ./backups/pwnv --force
 pwnv workspace import ./pwnv-export.json --force
@@ -232,6 +269,56 @@ Environment variables avoid exposing secrets in shell history and process listin
 Running `pwnv ctf sync` updates existing challenge points, categories, solved state,
 descriptions, services, tags, and attachments in addition to fetching new challenges.
 Local tags, solved progress, flags, and challenge directory paths are preserved.
+
+### Jumping between challenges
+
+`cd` can only happen in your own shell, so `pwnv` ships a function instead of a
+command. Add this to `~/.bashrc`, `~/.zshrc`, or `~/.config/fish/config.fish`:
+
+```bash
+eval "$(pwnv shell-init)"
+```
+
+`pwncd` then takes you to a challenge directory, or opens a picker with no
+argument:
+
+```bash
+pwncd baby-rop     # the directory name, as shell completion gives it
+pwncd 'Baby ROP'   # or the real name
+pwncd              # pick from a list
+```
+
+Names collide across events, so a bare name resolves against the CTF you are
+standing in first, then running CTFs, and only a genuine tie asks.
+
+### Scaffolding an existing challenge
+
+`pwnv challenge add` runs the plugin for the challenge's own category. Sometimes
+you want a different one: a web challenge with a binary attached still deserves
+the pwn template.
+
+```bash
+pwnv challenge scaffold --category pwn --suffix _pwn
+pwnv challenge scaffold --plugin my_pwn_plugin --force
+```
+
+This runs the chosen plugin and renders its template; it does not change the
+challenge's category or anything else about the record. Existing files are left
+alone unless you pass `--force`, and `--suffix` writes `solve_pwn.py` next to a
+`solve.py` you are already working in.
+
+### Watching a live CTF
+
+```bash
+pwnv ctf sync --ctf DemoCTF --watch --interval 60
+```
+
+Each poll prints only the delta: challenges that unlocked, prices that moved
+under dynamic scoring, and anything solved on the platform. Attachments already
+on disk are matched by checksum and not downloaded again, so polling a CTF with
+large files stays cheap; `--refresh-attachments` forces a re-download when
+organisers republish a file under the same name. The watch stops on Ctrl-C or
+once the CTF is no longer running, and backs off if the platform starts failing.
 
 ### Challenge notes and environments
 
@@ -262,8 +349,19 @@ pwnv init --yes --no-install --ctfs-folder /tmp/ctfs
 ```
 
 `workspace backup` contains the complete workspace, including remote credentials.
-Store its archive securely. `workspace export` contains metadata only and is the
-safer format for sharing or moving workspace structure.
+Store its archive securely. Generated virtual environments (`.pwnvenv` and each
+challenge's `.venv`) are excluded, since `uv` can rebuild them. `workspace export`
+contains metadata only and is the safer format for sharing or moving workspace
+structure.
+
+`workspace import` merges by default, so importing a teammate's export adds their
+CTFs and challenges without touching your own solves. Records already present are
+skipped, which makes re-importing the same file a no-op. Pass `--replace` for the
+old behaviour of discarding the current metadata.
+
+Each remote CTF directory gets a `.gitignore` covering `.env` and `.session`, so
+committing a shared CTF folder to a team repository does not leak the platform
+password or a live session cookie.
 
 -----
 

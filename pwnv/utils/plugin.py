@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from pwnv.constants import (
+    DEFAULT_EXAMPLES_FOLDER_NAME,
     DEFAULT_PLUGINS_FOLDER_NAME,
     DEFAULT_SELECTION_FILE_NAME,
     DEFAULT_TEMPLATES_FOLDER_NAME,
@@ -23,6 +24,75 @@ def get_plugins_directory() -> Path:
 def get_templates_directory() -> Path:
     _TEMPLATES_ROOT.mkdir(parents=True, exist_ok=True)
     return _TEMPLATES_ROOT
+
+
+def get_bundled_examples_directory() -> Path:
+    """Where the plugins and templates that ship with pwnv live."""
+    return Path(__file__).resolve().parent.parent / DEFAULT_EXAMPLES_FOLDER_NAME
+
+
+def install_bundled_examples() -> List[Path]:
+    """
+    Seed the workspace with the plugins and templates pwnv ships.
+
+    A fresh workspace with no plugins at all means `pwnv challenge add` only
+    creates an empty directory, which is a poor first impression and gives
+    nothing to copy when writing your own. Files that already exist are skipped
+    rather than overwritten, so this never clobbers an edited plugin.
+    """
+    import shutil
+
+    source = get_bundled_examples_directory()
+    if not source.is_dir():
+        return []
+
+    installed: List[Path] = []
+    roots = {
+        DEFAULT_PLUGINS_FOLDER_NAME: get_plugins_directory(),
+        DEFAULT_TEMPLATES_FOLDER_NAME: get_templates_directory(),
+    }
+    for folder, destination_root in roots.items():
+        root = source / folder
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*")):
+            if path.is_dir() or path.name == DEFAULT_SELECTION_FILE_NAME:
+                continue
+            destination = destination_root / path.relative_to(root)
+            if destination.exists():
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            installed.append(destination)
+
+    _apply_bundled_selection(source)
+    return installed
+
+
+def _apply_bundled_selection(source: Path) -> None:
+    """Select the bundled plugins for categories that have nothing selected."""
+    import json
+
+    bundled = source / DEFAULT_PLUGINS_FOLDER_NAME / DEFAULT_SELECTION_FILE_NAME
+    if not bundled.is_file():
+        return
+
+    try:
+        defaults = json.loads(bundled.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return
+    if not isinstance(defaults, dict):
+        return
+
+    plugins_directory = get_plugins_directory()
+    selection = get_plugin_selection()
+    additions = {
+        category: name
+        for category, name in defaults.items()
+        if category not in selection and (plugins_directory / f"{name}.py").is_file()
+    }
+    if additions:
+        save_plugin_selection({**selection, **additions})
 
 
 def load_template_content(category_name: str, filename: str) -> str:
