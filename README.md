@@ -1,4 +1,21 @@
-# pwnv: A CTF Workspace Management Tool 🛠️
+<div align="center">
+
+# 🛠️ pwnv
+
+**A CTF workspace manager for the command line.**
+
+[![PyPI](https://img.shields.io/pypi/v/pwnv.svg?logo=pypi&logoColor=white)](https://pypi.org/project/pwnv/)
+[![Python](https://img.shields.io/pypi/pyversions/pwnv.svg?logo=python&logoColor=white)](https://pypi.org/project/pwnv/)
+[![Docs](https://img.shields.io/readthedocs/pwnv?logo=readthedocs&logoColor=white)](https://pwnv.readthedocs.io)
+[![CI](https://github.com/CarixoHD/pwnv/actions/workflows/ci.yml/badge.svg)](https://github.com/CarixoHD/pwnv/actions/workflows/ci.yml)
+[![License](https://img.shields.io/pypi/l/pwnv.svg)](LICENSE)
+
+[**Documentation**](https://pwnv.readthedocs.io) &nbsp;·&nbsp;
+[Installation](https://pwnv.readthedocs.io/en/latest/getting-started/installation/) &nbsp;·&nbsp;
+[Quickstart](https://pwnv.readthedocs.io/en/latest/getting-started/quickstart/) &nbsp;·&nbsp;
+[Contributing](CONTRIBUTING.md)
+
+</div>
 
 **pwnv** is a Command-Line Interface (CLI) utility designed to optimize and organize CTF workflows. It facilitates challenge management, environment setup, and integration with remote CTF platforms, providing a structured approach to CTF participation.
 
@@ -20,6 +37,8 @@
 | 🚀 **Remote Flag Submission**| Allows direct submission of flags to remote CTF platforms via the command line. |
 | 🔌 **Plugin Architecture** | Supports custom Python plugins for automating challenge setup based on predefined categories (e.g., pwn, web). Ships with a working example, installed on `pwnv init`. |
 | 🧭 **Fast Navigation** | `pwncd <name>` jumps straight to a challenge directory, with fuzzy selection when you omit the name. |
+| 🎒 **Challenge Object** | `from pwnv import challenge` hands a solve script the [`ctfbridge`](https://github.com/bjornmorten/ctfbridge) challenge model - services, attachments, description, points - instead of values baked in at scaffold time. |
+| 🧾 **Machine-Readable Output** | `--json` on every reporting command, with stdout kept as a clean data channel. |
 | 📊 **Progress Overview** | `pwnv status` reports solves and points across the workspace, or per category with what is left to do. |
 | 🏷️ **Challenge Tagging** | Provides functionality to tag solved challenges with relevant keywords for efficient searching and retrieval. |
 | ✨ **Interactive Interface**| Employs fuzzy finders and interactive prompts for intuitive navigation and user input. |
@@ -39,12 +58,18 @@
 pip install pwnv
 ```
 
-### Option 2: From Source (Development)
+### Option 2: As an isolated tool
+
+```bash
+uv tool install pwnv
+```
+
+### Option 3: From Source (Development)
 
 ```bash
 git clone https://github.com/CarixoHD/pwnv
 cd pwnv
-pip install --editable .
+uv sync
 ```
 
 -----
@@ -83,6 +108,59 @@ pip install --editable .
     ```bash
     pwnv status --detail
     ```
+
+-----
+
+## 🎒 Solve Scripts That Know Where They Are
+
+A scaffolded solver has the host, the port, and the binary name written into it
+as literals. That holds until the platform moves the service, or until you copy
+the script to the next challenge and edit constants a lookup could have answered.
+
+```python
+from pwnv import challenge
+
+p = remote(challenge.service.host, challenge.service.port)
+elf = ELF(challenge.attachments[0].local_path)
+```
+
+`challenge` is the [`ctfbridge`](https://github.com/bjornmorten/ctfbridge)
+challenge model — the same object the sync fetched — rebuilt from the workspace
+for whichever challenge the working directory belongs to. There is no pwnv
+wrapper on top of it, so `service`, `services`, `attachments`, `value`, `tags`,
+`description`, `author` and the rest are ctfbridge's own fields. pwnv adds two:
+`path`, and the `flag` you recorded.
+
+Full reference: [The challenge object](https://pwnv.readthedocs.io/en/latest/api/challenge/).
+
+-----
+
+## 🧾 Machine-Readable Output
+
+Every command that reports a record accepts `--json`:
+
+```bash
+pwnv challenge info --json
+pwnv challenge search --category pwn --unsolved --json
+pwnv ctf info --json
+pwnv plugin info --json
+pwnv status --detail --json
+```
+
+stdout carries the data and nothing else; notices, warnings, and errors go to
+stderr in every mode. A pipe therefore stays parseable even when a command has
+something to say:
+
+```bash
+pwnv challenge search --unsolved --json | jq -r '.challenges[].name'
+pwnv challenge info --json | jq -r '.challenges[0].services[0].host'
+```
+
+A query that matches nothing returns an empty list and exit code 0, and a
+command in `--json` mode never opens a picker — there is nobody on the far end
+of a pipe to answer it.
+
+Payload shapes: [JSON payloads](https://pwnv.readthedocs.io/en/latest/api/json/).
 
 -----
 
@@ -237,6 +315,7 @@ The following table summarizes the available commands. For detailed usage, appen
 | `pwnv plugin info` | Displays information about registered plugins. |
 | `pwnv plugin select` | Assigns a specific plugin to a challenge category. |
 | `pwnv workspace backup [PATH]` | Creates a full archive, including challenge files and credentials. |
+| `pwnv workspace restore <PATH>` | Restores a full archive on another machine, rebasing every path onto the new CTF folder. |
 | `pwnv workspace export [PATH]` | Exports portable workspace metadata without files or credentials. |
 | `pwnv workspace import <PATH>` | Merges metadata into the current workspace, rebasing paths. Use `--replace` to discard local metadata instead. |
 
@@ -259,6 +338,7 @@ pwnv solve --history --challenge RopMaster --ctf ExampleCTF
 pwnv status --ctf ExampleCTF --detail --json
 pwnv doctor
 pwnv workspace backup ./backups/pwnv --force
+pwnv workspace restore ./backups/pwnv.tar.gz
 pwnv workspace import ./pwnv-export.json --force
 ```
 
@@ -348,11 +428,39 @@ For a completely unattended initial setup, combine `--yes` and `--no-install`:
 pwnv init --yes --no-install --ctfs-folder /tmp/ctfs
 ```
 
-`workspace backup` contains the complete workspace, including remote credentials.
-Store its archive securely. Generated virtual environments (`.pwnvenv` and each
-challenge's `.venv`) are excluded, since `uv` can rebuild them. `workspace export`
-contains metadata only and is the safer format for sharing or moving workspace
-structure.
+### Moving to a new machine
+
+`workspace backup` writes the whole workspace to a single archive, and
+`workspace restore` puts it back on the other side:
+
+```bash
+# old machine
+pwnv workspace backup ~/pwnv-move
+
+# new machine
+pip install pwnv
+pwnv init --ctfs-folder ~/CTFs
+pwnv workspace restore ~/pwnv-move.tar.gz
+```
+
+Challenge files, notes, solve scripts, flags and the `.env`/`.session`
+credentials all come across. The absolute paths recorded on the old machine do
+not: every record is rebased onto the new CTF folder, and the directory names
+the archive was made with are preserved, including the suffixes pwnv adds when
+two challenges want the same one.
+
+Generated virtual environments (`.pwnvenv` and each challenge's `.venv`) are left
+out of the archive, since `uv` rebuilds them faster than a tarball can carry
+them — which is what `pwnv init` does on the new machine before the restore.
+
+A restore never overwrites a file that is already on disk and never discards
+metadata, so it is safe to re-run over a workspace that is half there. Pass
+`--force` when the archive is the version you want to keep, and `--replace` to
+throw away the current metadata first.
+
+`workspace backup` archives contain remote credentials — store them the way you
+store the `.env` files inside them. `workspace export` is the format for sharing:
+metadata only, with flags and submission history stripped.
 
 `workspace import` merges by default, so importing a teammate's export adds their
 CTFs and challenges without touching your own solves. Records already present are
@@ -365,9 +473,34 @@ password or a live session cookie.
 
 -----
 
+## 📚 Documentation
+
+Full documentation lives at **[pwnv.readthedocs.io](https://pwnv.readthedocs.io)**:
+
+  * [Installation](https://pwnv.readthedocs.io/en/latest/getting-started/installation/) and [Quickstart](https://pwnv.readthedocs.io/en/latest/getting-started/quickstart/)
+  * [Workspace layout](https://pwnv.readthedocs.io/en/latest/getting-started/workspace/)
+  * [Challenges](https://pwnv.readthedocs.io/en/latest/guide/challenges/), [remote platforms](https://pwnv.readthedocs.io/en/latest/guide/remote/), [navigation](https://pwnv.readthedocs.io/en/latest/guide/navigation/)
+  * [Plugins and templates](https://pwnv.readthedocs.io/en/latest/guide/plugins/), [scripting and automation](https://pwnv.readthedocs.io/en/latest/guide/automation/)
+  * [Backup and moving to a new machine](https://pwnv.readthedocs.io/en/latest/guide/backup/)
+  * [The challenge object](https://pwnv.readthedocs.io/en/latest/api/challenge/) and [JSON payloads](https://pwnv.readthedocs.io/en/latest/api/json/)
+
+-----
+
 ## 🤝 Contributing
 
-Contributions to `pwnv` are welcome. Please refer to the [GitHub repository](https://github.com/CarixoHD/pwnv) to report issues, propose features, or submit pull requests.
+Contributions are welcome — bug reports, platform quirks, plugins, and docs
+fixes alike. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for how to set up the
+development environment, the checks CI runs, and the conventions the codebase
+follows.
+
+```bash
+git clone https://github.com/CarixoHD/pwnv.git
+cd pwnv && uv sync && uv run pre-commit install
+uv run pytest && uv run ruff check . && uv run mypy pwnv
+```
+
+Found something security-sensitive? See
+[SECURITY.md](SECURITY.md) rather than opening an issue.
 
 -----
 

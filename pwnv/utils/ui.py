@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import IO, List, Sequence
+from typing import IO, TYPE_CHECKING, List, Sequence
 
 from rich.markup import escape
 
@@ -9,33 +9,78 @@ from pwnv.models.challenge import Category, Solved
 from pwnv.plugins import ChallengePlugin
 from pwnv.utils.crud import challenges_for_ctf, get_ctfs, get_tags
 
+if TYPE_CHECKING:
+    from rich.console import Console
+
+
+_diagnostic_console: "Console | None" = None
+
+
+def _diagnostics() -> "Console":
+    """
+    The console that notices, warnings and errors are written on.
+
+    stdout is a data channel: ``pwncd`` expands to ``cd "$(pwnv challenge
+    path)"`` and ``--json`` output gets piped into other tools, so a passing
+    remark on stdout corrupts the result. Diagnostics go to stderr instead,
+    where a human still sees them and a parser does not.
+
+    ``stderr=True`` resolves ``sys.stderr`` on every write, so the redirect in
+    :func:`prompt_on_tty` and the capture in tests both keep working.
+    """
+    global _diagnostic_console
+
+    if _diagnostic_console is None:
+        from rich.console import Console
+
+        _diagnostic_console = Console(stderr=True)
+    return _diagnostic_console
+
 
 def success(msg: str):
-    from rich import print
-
-    print(f"[green]✓[/] {msg}")
+    _diagnostics().print(f"[green]✓[/] {msg}")
 
 
 def error(msg: str):
-    from rich import print
-
-    print(f"[red]error:[/] {msg}")
+    _diagnostics().print(f"[red]error:[/] {msg}")
 
 
 def warn(msg: str):
-    from rich import print
-
-    print(f"[yellow]warning:[/] {msg}")
+    _diagnostics().print(f"[yellow]warning:[/] {msg}")
 
 
 def info(msg: str):
-    from rich import print
-
-    print(f"[blue]info:[/] {msg}")
+    _diagnostics().print(f"[blue]info:[/] {msg}")
 
 
 def command(msg: str):
     return f"[cyan]`{msg}`[/]"
+
+
+def debug_enabled() -> bool:
+    """Report whether ``PWNV_DEBUG`` is set to something that means yes."""
+    import os
+
+    from pwnv.constants import PWNV_DEBUG_ENV
+
+    return os.getenv(PWNV_DEBUG_ENV, "").strip().lower() not in ("", "0", "false", "no")
+
+
+def debug_traceback() -> None:
+    """
+    Print the exception being handled, when ``PWNV_DEBUG`` is set.
+
+    A command that swallows an exception to print a sentence instead is right
+    for an event and useless for a bug report: "Failed to fetch challenges."
+    says nothing about which platform call failed. Set ``PWNV_DEBUG=1`` to get
+    the traceback alongside the sentence, on stderr with the other diagnostics.
+    """
+    import sys
+    import traceback
+
+    if not debug_enabled() or sys.exc_info()[0] is None:
+        return
+    _diagnostics().print("[dim]" + escape(traceback.format_exc().rstrip()) + "[/]")
 
 
 def _get_challenge_choices(challenges: Sequence[Challenge]):

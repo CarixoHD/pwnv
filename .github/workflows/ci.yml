@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  # Pull requests are where the checks matter; on `push` only main is built, so
+  # a branch with an open PR is not tested twice for the same commit.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Ruff
+        run: uv run ruff check --output-format=github .
+
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: mypy
+        run: uv run mypy pwnv
+
+      # Pinned to the pre-commit hook's version, so a codespell release
+      # cannot fail CI on a commit that passed the hooks locally.
+      - name: Spelling
+        run: uvx codespell@2.4.3
+
+  test:
+    name: Tests on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Run tests
+        run: uv run --python ${{ matrix.python-version }} pytest
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      # The command reference is generated from the Typer app. Renaming an
+      # option without regenerating it is exactly the drift this catches.
+      - name: Check the command reference is current
+        run: uv run python scripts/gen_cli_docs.py --check
+
+      # Read the Docs builds on push; --strict turns a broken link or a bad
+      # mkdocstrings reference into a failure here instead of a quiet warning
+      # nobody reads.
+      - name: Build the site
+        run: uv run --extra docs mkdocs build --strict
+
+  package:
+    name: Wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # setuptools-scm reads the version from tags.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Build
+        run: uv build
+
+      - name: Check metadata
+        run: uvx twine check dist/*
+
+      # Installing the wheel is the only thing that proves the bundled plugins
+      # and templates are in it: the test suite runs from the source tree, where
+      # they are present either way.
+      - name: Install the wheel into a clean environment
+        run: |
+          uv venv --python 3.13 "$RUNNER_TEMP/pwnv"
+          uv pip install --python "$RUNNER_TEMP/pwnv/bin/python" dist/*.whl
+
+      - name: Smoke test the installed CLI
+        run: |
+          export PATH="$RUNNER_TEMP/pwnv/bin:$PATH"
+          scripts/smoke.sh 3.13
+
+      - name: Upload the distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/

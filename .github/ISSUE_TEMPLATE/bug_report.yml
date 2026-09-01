@@ -1,0 +1,57 @@
+name: 🐛 Bug report
+description: Something in pwnv does not work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. If the problem is with a
+        specific CTF platform, say which one — most remote issues turn out to be
+        platform quirks.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+      placeholder: |
+        `pwnv ctf sync` returns no challenges, but the platform lists 40.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran, in order.
+      render: console
+      placeholder: |
+        $ pwnv ctf add example --url https://ctf.example.org
+        $ pwnv ctf sync
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `pwnv doctor`
+      description: >
+        This reports your version, the CTF environment and the state of the
+        workspace. Redact anything you would rather not share.
+      render: console
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: CTF platform
+      description: CTFd, rCTF, Berg, HTB, other — and the URL if it is public.
+      placeholder: CTFd
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Traceback
+      description: If pwnv crashed, paste the full traceback.
+      render: python

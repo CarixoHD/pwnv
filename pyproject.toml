@@ -15,6 +15,8 @@ authors = [
 keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf", "tool", "workspace", "automation", "workflow", "challenges"]
 requires-python = ">=3.12"
 dependencies = [
+    # Imported directly, to resolve the config directory without typer.
+    "click>=8.0",
     "ctfbridge>=0.8.10",
     "filelock>=3.18.0",
     "inquirerpy>=0.3.4",
@@ -32,9 +34,20 @@ dev = [
   "pytest",
 ]
 
+[project.optional-dependencies]
+# An extra rather than a dependency group: Read the Docs installs the project
+# with pip, which understands extras but not PEP 735 groups.
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.26",
+]
+
 [project.urls]
+Homepage = "https://github.com/CarixoHD/pwnv/"
+Documentation = "https://pwnv.readthedocs.io"
 Repository = "https://github.com/CarixoHD/pwnv/"
 Issues = "https://github.com/CarixoHD/pwnv/issues"
+Changelog = "https://github.com/CarixoHD/pwnv/releases"
 
 [tool.ruff]
 # Bundled templates are rendered, not imported; they hold placeholders.
@@ -66,6 +79,15 @@ exclude = ["tests*"]
 # Templates are rendered into challenge directories, not imported; they refer to
 # names that only exist after `from pwn import *` runs in the CTF environment.
 exclude = ["pwnv/examples/templates/"]
+
+[[tool.mypy.overrides]]
+# pwntools lives in the CTF environment `pwnv init` builds, not in the
+# development environment, so scaffolded solve scripts import it at run time.
+module = ["pwn"]
+ignore_missing_imports = true
+
+[tool.codespell]
+skip = "*.lock,*.json,./site,./.git,./docs/reference/cli.md"
 
 [tool.pytest.ini_options]
 addopts = "-ra"

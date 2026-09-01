@@ -2,6 +2,7 @@ from typing import List
 
 import typer
 
+from pwnv.cli.options import JSON
 from pwnv.models import CTF, Challenge
 from pwnv.utils import (
     challenges_exists,
@@ -81,7 +82,7 @@ def add(
             f"[cyan]{name}[/] already exists in "
             f"[cyan]{chosen_ctf.name}/{chosen_category.name}/[/]."
         )
-        return
+        raise typer.Exit(code=1)
 
     challenge = Challenge(
         ctf_id=chosen_ctf.id, name=name, path=ch_path, category=chosen_category
@@ -153,10 +154,13 @@ def info_(
         None, "--challenge", help="Challenge name (skips selection)"
     ),
     ctf: str | None = typer.Option(None, "--ctf", help="Limit selection to one CTF"),
+    json_output: bool = JSON,
 ) -> None:
     """Displays detailed information about a selected challenge."""
     from pwnv.utils import (
         challenges_for_ctf,
+        challenges_payload,
+        emit_json,
         error,
         get_challenges,
         get_ctf_by_name,
@@ -182,6 +186,19 @@ def info_(
     if len(named) > 1:
         error("Challenge name is ambiguous; add --ctf to select one CTF.")
         raise typer.Exit(code=1)
+
+    if json_output:
+        # A picker cannot answer to a pipe, so this reports the scope it was
+        # given rather than asking which challenge was meant.
+        if named:
+            selection = named
+        elif not all and not selected_ctf and (here := get_current_challenge()):
+            selection = [here]
+        else:
+            selection = scope
+        emit_json({"challenges": challenges_payload(selection)})
+        return
+
     if named:
         show_challenge(named[0])
         return
@@ -259,10 +276,13 @@ def search(
     solved: bool | None = typer.Option(
         None, "--solved/--unsolved", help="Filter by solve state"
     ),
+    json_output: bool = JSON,
 ) -> None:
     """Search challenge names, descriptions, categories, and tags."""
     from pwnv.utils import (
         challenges_for_ctf,
+        challenges_payload,
+        emit_json,
         error,
         get_challenges,
         get_ctf_by_name,
@@ -294,6 +314,11 @@ def search(
             has_service=has_service,
             solved=solved,
         )
+    if json_output:
+        # An empty result is a legitimate answer to a query, not a warning.
+        emit_json({"challenges": challenges_payload(matches)})
+        return
+
     if not matches:
         warn(f"No challenges match '{query or 'the selected filters'}'.")
         return

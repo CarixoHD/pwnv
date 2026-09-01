@@ -84,7 +84,7 @@ def init(
 
     if not shutil.which("uv"):
         error(f"{command('uv')} binary not found in PATH. Install it first.")
-        return
+        raise typer.Exit(code=1)
 
     cfg_path = get_config_path()
     plugin_folder = cfg_path.parent / DEFAULT_PLUGINS_FOLDER_NAME
@@ -92,7 +92,7 @@ def init(
 
     if cfg_path.exists():
         error("Config file already exists - aborting.")
-        return
+        raise typer.Exit(code=1)
 
     ctfs_folder = ctfs_folder.resolve()
     env_path = ctfs_folder / DEFAULT_PWNVENV_FOLDER_NAME
@@ -133,7 +133,7 @@ def init(
         error("Failed to initialise uv environment.")
         _report(venv)
         info(f"Run {command('pwnv reset')} and run {command('pwnv init')} again.")
-        return
+        raise typer.Exit(code=1)
 
     python_path = venv_python(env_path)
 

@@ -1,0 +1,25 @@
+name: Release Drafter
+
+on:
+  push:
+    branches: [main]
+  # `pull_request_target` so the autolabeler can write to pull requests from
+  # forks, where the default token is read-only. Nothing is checked out and no
+  # code from the pull request runs, which is what makes that safe here.
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    permissions:
+      # Write the draft release, and apply the labels it groups by.
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

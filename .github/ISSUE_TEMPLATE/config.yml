@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://pwnv.readthedocs.io
+    about: Command reference, guides and the scripting API.
+  - name: 🌉 ctfbridge
+    url: https://github.com/bjornmorten/ctfbridge/issues
+    about: Platform detection, login and scraping live here, not in pwnv.

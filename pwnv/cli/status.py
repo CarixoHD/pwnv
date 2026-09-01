@@ -2,6 +2,7 @@
 
 import typer
 
+from pwnv.cli.options import JSON
 from pwnv.utils import config_exists
 
 app = typer.Typer(no_args_is_help=True)
@@ -18,11 +19,10 @@ def _last_solve(challenge) -> str | None:
     return str(attempts[-1].get("timestamp")) if attempts else None
 
 
-def _ctf_row(ctf) -> dict:
+def _ctf_row(ctf, challenges) -> dict:
+    """One dashboard row, from the challenges the caller already grouped."""
     from pwnv.models.challenge import Solved
-    from pwnv.utils import challenges_for_ctf
 
-    challenges = challenges_for_ctf(ctf)
     solved = [ch for ch in challenges if ch.solved == Solved.solved]
     return {
         "ctf": ctf.name,
@@ -106,20 +106,18 @@ def status(
     limit: int = typer.Option(
         5, "--limit", min=1, help="Rows to show in the detail tables"
     ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Output machine-readable JSON"
-    ),
+    json_output: bool = JSON,
 ) -> None:
     """Show challenge and point progress for the workspace."""
-    import json
     from typing import Any, cast
 
     from rich.console import Console
     from rich.table import Table
 
     from pwnv.utils import (
-        challenges_for_ctf,
+        emit_json,
         error,
+        get_challenges,
         get_ctf_by_name,
         get_ctfs,
         get_current_challenge,
@@ -135,10 +133,17 @@ def status(
             raise typer.Exit(code=1)
         ctfs = [selected]
 
-    rows = [_ctf_row(item) for item in ctfs]
+    # Grouped once rather than asked for per CTF: every `challenges_for_ctf`
+    # call rebuilds the whole challenge list from the config, so the dashboard
+    # used to re-read the workspace once for each row it printed.
+    grouped: dict[Any, list] = {}
+    for item in get_challenges():
+        grouped.setdefault(item.ctf_id, []).append(item)
+
+    rows = [_ctf_row(item, grouped.get(item.id, [])) for item in ctfs]
 
     focus = ctfs[0] if len(ctfs) == 1 else get_current_ctf()
-    focus_challenges = challenges_for_ctf(focus) if focus else []
+    focus_challenges = grouped.get(focus.id, []) if focus else []
     detail_payload: dict[str, Any] | None = (
         {
             "ctf": focus.name,
@@ -159,7 +164,7 @@ def status(
         }
         if detail_payload:
             payload["detail"] = detail_payload
-        typer.echo(json.dumps(payload, indent=2))
+        emit_json(payload)
         return
 
     console = Console()

@@ -22,8 +22,6 @@ _EMPTY_CONFIG: dict = {"ctfs": [], "challenges": [], "challenge_tags": []}
 
 def _resolve_config_path() -> Path:
     """Return the path of the configuration file."""
-    import typer
-
     from pwnv.constants import DEFAULT_CONFIG_BASENAME, PWNV_CONFIG_ENV
 
     if override := os.getenv(PWNV_CONFIG_ENV):
@@ -34,7 +32,12 @@ def _resolve_config_path() -> Path:
         if candidate.is_file():
             return candidate
 
-    return Path(typer.get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
+    # click rather than typer, which re-exports this same function: this is the
+    # branch a default install takes, and `from pwnv import challenge` reaches
+    # it, so a solve script would import the whole CLI to find its config.
+    from click import get_app_dir
+
+    return Path(get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
 
 
 config_path: Path = _resolve_config_path()
@@ -70,8 +73,14 @@ def load_config() -> dict:
     return _read_config_file()
 
 
-def _invalidate_cache() -> None:
-    """Clear the cached configuration."""
+def invalidate_cache() -> None:
+    """
+    Clear the cached configuration.
+
+    Every write goes through here, so a long-lived process - a solve script
+    calling :func:`pwnv.api.current`, or the shell - sees a change another
+    ``pwnv`` process made rather than the config as it was at import time.
+    """
     load_config.cache_clear()
 
 
@@ -98,7 +107,7 @@ def save_config(cfg: dict) -> None:
     """Write ``cfg`` to disk atomically and invalidate the cache."""
     with _lock:
         _write_config_file(cfg)
-    _invalidate_cache()
+    invalidate_cache()
 
 
 @contextmanager
@@ -115,7 +124,7 @@ def config_transaction() -> Generator[dict]:
         cfg = _read_config_file()
         yield cfg
         _write_config_file(cfg)
-    _invalidate_cache()
+    invalidate_cache()
 
 
 def get_config_path() -> Path:

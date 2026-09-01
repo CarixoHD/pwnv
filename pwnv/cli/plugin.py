@@ -1,5 +1,6 @@
 import typer
 
+from pwnv.cli.options import JSON
 from pwnv.utils import (
     config_exists,
     plugins_exists,
@@ -37,14 +38,14 @@ def add(name: str) -> None:
             f"Invalid plugin name '{name}'."
             "Must be alphanumeric (no underscores, dashes, or spaces)."
         )
-        return
+        raise typer.Exit(code=1)
 
     plugins_dir = get_plugins_directory()
     plugin_file = plugins_dir / f"{name}.py"
 
     if plugin_file.exists():
         error(f"Plugin '{name}' already exists at {plugin_file}.")
-        return
+        raise typer.Exit(code=1)
 
     category = prompt_category_selection()
     templates_dir = get_templates_directory() / category.name
@@ -99,7 +100,7 @@ def remove() -> None:
 
     if not plugin_file.exists():
         error(f"Plugin file '{plugin_file}' not found (this shouldn't happen).")
-        return
+        raise typer.Exit(code=1)
 
     if not prompt_confirm(
         f"Are you sure you want to remove the plugin '{plugin_name_lower}' "
@@ -140,13 +141,15 @@ def remove() -> None:
 @app.command(name="info")
 @config_exists()
 @plugins_exists()
-def info_() -> None:
+def info_(json_output: bool = JSON) -> None:
     """
     Lists all available plugins and displays detailed information,
       including source code, for a selected plugin.
     """
     from pwnv.core import plugin_manager
     from pwnv.utils import (
+        emit_json,
+        plugins_payload,
         prompt_confirm,
         prompt_plugin_selection,
         show_plugin,
@@ -154,6 +157,13 @@ def info_() -> None:
     )
 
     plugins = plugin_manager.get_all_plugins()
+
+    if json_output:
+        # Every plugin at once: the rendered view exists to page through them
+        # one at a time, which a caller reading JSON does not need.
+        emit_json({"plugins": plugins_payload(plugins)})
+        return
+
     if not plugins:
         warn("No plugins found or loaded. Use 'pwnv plugin add' to create one.")
         return
@@ -193,7 +203,7 @@ def select() -> None:
             f"No plugins found for the category '{category.name}'. "
             f"Use 'pwnv plugin add' to create one."
         )
-        return
+        raise typer.Exit(code=1)
 
     chosen_plugin = prompt_plugin_selection(
         plugins_for_cat, f"Select a plugin for '{category.name}':"

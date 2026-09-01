@@ -1,0 +1,46 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+
+categories:
+  - title: "✨ Features"
+    labels: [enhancement]
+  - title: "🐛 Fixes"
+    labels: [bug]
+  - title: "📚 Documentation"
+    labels: [documentation]
+  - title: "🔧 Maintenance"
+    labels: [github_actions, "python:uv"]
+  - title: "📦 Dependencies"
+    labels: [dependencies]
+    collapse-after: 5
+
+exclude-labels: [duplicate, invalid, question, wontfix]
+
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  minor:
+    labels: [enhancement]
+  patch:
+    labels: [bug, documentation, dependencies, github_actions]
+  default: patch
+
+# Labels applied here are what the categories above group by, so a PR that
+# nobody labelled still lands in the right section.
+autolabeler:
+  - label: documentation
+    files: ["docs/**", "*.md", "mkdocs.yml"]
+  - label: github_actions
+    files: [".github/**"]
+  - label: bug
+    title: ["/^fix(\\(.*\\))?!?:/i"]
+  - label: enhancement
+    title: ["/^feat(\\(.*\\))?!?:/i"]
+
+template: |
+  ## What's changed
+
+  $CHANGES
+
+  **Full changelog**: https://github.com/CarixoHD/pwnv/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
