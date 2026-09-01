@@ -59,8 +59,6 @@ def isolated_config(monkeypatch, tmp_path):
 
     # Make pwnv resolve all config paths inside our temp directory.
     monkeypatch.setenv("PWNV_CONFIG", str(cfg_path))
-    # Ensure debug override is off.
-    monkeypatch.delenv("PWNV_DEBUG", raising=False)
 
     # Reload modules that cache the config path at import time.
     _reload_modules(_RELOADED_MODULES)

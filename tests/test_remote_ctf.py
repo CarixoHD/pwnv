@@ -310,32 +310,3 @@ def test_sync_pins_the_platform_on_the_ctf(monkeypatch):
 
     assert result.exit_code == 0
     assert get_ctfs()[0].platform == "rctf"
-
-
-@pytest.mark.parametrize(
-    ("value", "shown"),
-    [("1", True), ("0", False), ("", False)],
-)
-def test_pwnv_debug_decides_whether_the_traceback_is_printed(
-    monkeypatch, capsys, value, shown
-):
-    """The sentence is for an event, the traceback is for a bug report."""
-    from pwnv.utils import debug_traceback
-
-    monkeypatch.setenv("PWNV_DEBUG", value)
-    try:
-        raise RuntimeError("the underlying reason")
-    except RuntimeError:
-        debug_traceback()
-
-    assert ("the underlying reason" in capsys.readouterr().err) is shown
-
-
-def test_the_traceback_is_skipped_when_nothing_was_raised(monkeypatch, capsys):
-    """Called outside a handler it must print nothing, not `NoneType: None`."""
-    from pwnv.utils import debug_traceback
-
-    monkeypatch.setenv("PWNV_DEBUG", "1")
-    debug_traceback()
-
-    assert capsys.readouterr().err == ""

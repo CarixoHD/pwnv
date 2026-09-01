@@ -1,6 +1,5 @@
 # Environment variables
 PWNV_CONFIG_ENV = "PWNV_CONFIG"
-PWNV_DEBUG_ENV = "PWNV_DEBUG"
 
 # Default paths
 DEFAULT_CONFIG_BASENAME = "pwnv_config.json"

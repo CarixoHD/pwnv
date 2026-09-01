@@ -361,7 +361,7 @@ async def get_remote_credential_methods(
     try:
         client: Any = await open_client(url, platform)
     except Exception as exc:
-        from pwnv.utils.ui import command, debug_traceback, error, info
+        from pwnv.utils.ui import command, error, info
 
         error(f"Could not open a client for {url}: {exc}")
         if not platform:
@@ -369,7 +369,6 @@ async def get_remote_credential_methods(
                 "If the platform was not recognised, name it: "
                 f"{command('pwnv ctf add NAME --url URL --platform rctf')}."
             )
-        debug_traceback()
         return None, None
     methods = await client.auth.get_supported_auth_methods()
     return client, methods
@@ -386,10 +385,9 @@ async def create_remote_session(
         await client.session.save(str(ctf.path / ".session"))
         return True
     except Exception:
-        from pwnv.utils.ui import debug_traceback, error
+        from pwnv.utils.ui import error
 
         error("Failed to authenticate with the provided credentials.")
-        debug_traceback()
         return False
 
 
@@ -400,10 +398,9 @@ async def get_remote_challenges(client: Any, ctf: CTF):
         challenges = await client.challenges.get_all()
         return challenges
     except Exception:
-        from pwnv.utils.ui import debug_traceback, error
+        from pwnv.utils.ui import error
 
         error("Failed to fetch challenges.")
-        debug_traceback()
         return None
 
 
@@ -550,10 +547,7 @@ async def add_remote_challenges(
             try:
                 ch = await client.attachments.download_all(ch, save_dir=path)
             except Exception:
-                from pwnv.utils.ui import debug_traceback
-
                 warn(f"Skipped attachments for {name}")
-                debug_traceback()
             attachments = _fingerprint_attachments(
                 getattr(ch, "attachments", None) or []
             )
@@ -679,8 +673,7 @@ async def remote_solve(ctf: CTF, challenge: Challenge, flag: str) -> bool:
         except Exception:
             pass
 
-    from pwnv.utils.ui import debug_traceback, error
+    from pwnv.utils.ui import error
 
     error(f"Failed to submit flag '{flag}'.")
-    debug_traceback()
     return False

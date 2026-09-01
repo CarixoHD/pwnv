@@ -100,19 +100,6 @@ pwnv ctf sync --ctf ExampleCTF --platform rctf
 Detection failing for a public event is worth reporting upstream — it is a small
 patch, and the platform support itself is usually already there.
 
-## When something fails and the message is too short
-
-Remote failures print a sentence, because the traceback under it is rarely what
-you want mid-event. Set `PWNV_DEBUG=1` to get both:
-
-```bash
-PWNV_DEBUG=1 pwnv ctf sync --ctf DemoCTF
-```
-
-The traceback goes to stderr with the rest of the diagnostics, so `--json`
-output on stdout stays parseable. It covers connecting, authenticating, fetching
-challenges, downloading attachments and submitting flags.
-
 ## Submitting
 
 ```bash

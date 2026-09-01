@@ -57,32 +57,6 @@ def command(msg: str):
     return f"[cyan]`{msg}`[/]"
 
 
-def debug_enabled() -> bool:
-    """Report whether ``PWNV_DEBUG`` is set to something that means yes."""
-    import os
-
-    from pwnv.constants import PWNV_DEBUG_ENV
-
-    return os.getenv(PWNV_DEBUG_ENV, "").strip().lower() not in ("", "0", "false", "no")
-
-
-def debug_traceback() -> None:
-    """
-    Print the exception being handled, when ``PWNV_DEBUG`` is set.
-
-    A command that swallows an exception to print a sentence instead is right
-    for an event and useless for a bug report: "Failed to fetch challenges."
-    says nothing about which platform call failed. Set ``PWNV_DEBUG=1`` to get
-    the traceback alongside the sentence, on stderr with the other diagnostics.
-    """
-    import sys
-    import traceback
-
-    if not debug_enabled() or sys.exc_info()[0] is None:
-        return
-    _diagnostics().print("[dim]" + escape(traceback.format_exc().rstrip()) + "[/]")
-
-
 def _get_challenge_choices(challenges: Sequence[Challenge]):
     from InquirerPy.base.control import Choice
 
