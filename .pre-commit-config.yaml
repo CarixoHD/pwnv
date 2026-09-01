@@ -1,20 +1,42 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v6.0.0
     hooks:
       - id: check-ast
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-added-large-files
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
       - id: debug-statements
       - id: detect-private-key
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.1
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.9
+    rev: v0.16.5
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+        additional_dependencies: [tomli]
+  - repo: local
+    hooks:
+      # The command reference is generated from the Typer app; regenerate it
+      # here so a renamed option cannot be committed without its documentation.
+      - id: cli-docs
+        name: regenerate the command reference
+        entry: python scripts/gen_cli_docs.py
+        language: system
+        pass_filenames: false
+        files: ^(pwnv/cli/|scripts/gen_cli_docs\.py)

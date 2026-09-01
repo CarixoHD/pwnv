@@ -5,27 +5,62 @@ on:
     tags:
       - "v*.*.*"
 
-jobs:
-  publish:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          # setuptools-scm derives the version from the tag.
+          fetch-depth: 0
 
-      - name: Install build tools
-        run: |
-          pip install build twine
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
 
       - name: Build the package
-        run: python -m build
+        run: uv build
+
+      - name: Check metadata
+        run: uvx twine check dist/*
+
+      # The same check CI runs on every commit, against the artifact that is
+      # about to be published. A release is the worst place to find out that
+      # something did not make it into the wheel.
+      - name: Smoke test the built wheel
+        run: |
+          uv venv --python 3.13 "$RUNNER_TEMP/pwnv"
+          uv pip install --python "$RUNNER_TEMP/pwnv/bin/python" dist/*.whl
+          export PATH="$RUNNER_TEMP/pwnv/bin:$PATH"
+          scripts/smoke.sh 3.13
+
+      - name: Upload the distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+        run: uvx twine upload dist/*

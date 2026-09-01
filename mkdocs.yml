@@ -56,6 +56,7 @@ nav:
       - 🤖 Scripting and Automation: guide/automation.md
       - 💾 Backup and Moving: guide/backup.md
   - 📚 Reference:
+      - ⌨️ Commands: reference/cli.md
       - 🎒 The challenge object: api/challenge.md
       - 🧾 JSON payloads: api/json.md
   - 🛠️ Developer Guide:

@@ -84,6 +84,9 @@ exclude = ["pwnv/examples/templates/"]
 module = ["pwn"]
 ignore_missing_imports = true
 
+[tool.codespell]
+skip = "*.lock,*.json,./site,./.git,./docs/reference/cli.md"
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]

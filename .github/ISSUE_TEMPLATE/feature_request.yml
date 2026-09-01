@@ -1,0 +1,25 @@
+name: ✨ Feature request
+description: Suggest something pwnv should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: >
+        The workflow, not the feature. What does solving a challenge look like
+        for you today, and where does pwnv get in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: A command, a flag, an output format — as concrete as you like.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do instead today
+      description: A script, another tool, or doing it by hand.

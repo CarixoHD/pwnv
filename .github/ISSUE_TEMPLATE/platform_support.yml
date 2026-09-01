@@ -1,0 +1,48 @@
+name: 🌐 Platform support
+description: A CTF platform pwnv does not handle correctly
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        pwnv talks to platforms through
+        [ctfbridge](https://github.com/bjornmorten/ctfbridge). Detection and
+        scraping bugs usually belong there, but report them here if you are not
+        sure which side is at fault — it is often clearer from the pwnv end.
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: CTFd 3.7, rCTF, ...
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: URL
+      description: Leave blank if the event is private.
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where it fails
+      options:
+        - Detecting the platform
+        - Logging in
+        - Listing challenges (`pwnv ctf sync`)
+        - Downloading attachments
+        - Submitting a flag (`pwnv solve`)
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The command, what it printed, and the traceback if it crashed.
+      render: console
+    validations:
+      required: true
