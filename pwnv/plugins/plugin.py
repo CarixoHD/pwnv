@@ -11,8 +11,6 @@ from pwnv.models.challenge import Category
 
 @dataclass
 class TemplateWriteReport:
-    """What a run of ``create_template`` actually did on disk."""
-
     written: List[Path] = field(default_factory=list)
     skipped: List[Path] = field(default_factory=list)
 
@@ -31,13 +29,6 @@ _policy = _WritePolicy()
 def template_write_policy(
     *, force: bool = False, suffix: str = ""
 ) -> Generator[TemplateWriteReport]:
-    """
-    Control how templates are written for the duration of the block.
-
-    The policy lives here instead of in ``create_template``'s signature so it
-    also applies to plugins that override ``create_template``: every plugin
-    ultimately writes through :meth:`ChallengePlugin._write_template`.
-    """
     global _policy
 
     previous = _policy
@@ -50,7 +41,6 @@ def template_write_policy(
 
 
 def _apply_suffix(filename: str, suffix: str) -> str:
-    """Insert ``suffix`` before the extension, so ``solve.py`` -> ``solve_pwn.py``."""
     if not suffix:
         return filename
     stem, dot, extension = filename.rpartition(".")

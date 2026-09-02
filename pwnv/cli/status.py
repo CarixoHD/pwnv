@@ -1,5 +1,3 @@
-"""Workspace dashboard."""
-
 import typer
 
 from pwnv.cli.options import JSON
@@ -9,7 +7,6 @@ app = typer.Typer(no_args_is_help=True)
 
 
 def _last_solve(challenge) -> str | None:
-    """Return the timestamp of the accepted submission, if one was recorded."""
     extras = challenge.extras if isinstance(challenge.extras, dict) else {}
     attempts = [
         attempt
@@ -20,7 +17,6 @@ def _last_solve(challenge) -> str | None:
 
 
 def _ctf_row(ctf, challenges) -> dict:
-    """One dashboard row, from the challenges the caller already grouped."""
     from pwnv.models.challenge import Solved
 
     solved = [ch for ch in challenges if ch.solved == Solved.solved]
@@ -37,7 +33,6 @@ def _ctf_row(ctf, challenges) -> dict:
 
 
 def _category_rows(challenges) -> list[dict]:
-    """Break one CTF down by category, which is how you pick what to work on."""
     from pwnv.models.challenge import Solved
 
     rows: dict[str, dict] = {}
@@ -54,7 +49,6 @@ def _category_rows(challenges) -> list[dict]:
 
 
 def _todo(challenges, limit: int) -> list[dict]:
-    """Cheapest unsolved challenges first: the usual next thing to look at."""
     from pwnv.models.challenge import Solved
     from pwnv.utils import format_service
 
@@ -108,7 +102,7 @@ def status(
     ),
     json_output: bool = JSON,
 ) -> None:
-    """Show challenge and point progress for the workspace."""
+    """Shows challenge and point progress for the workspace."""
     from typing import Any, cast
 
     from rich.console import Console
@@ -133,9 +127,6 @@ def status(
             raise typer.Exit(code=1)
         ctfs = [selected]
 
-    # Grouped once rather than asked for per CTF: every `challenges_for_ctf`
-    # call rebuilds the whole challenge list from the config, so the dashboard
-    # used to re-read the workspace once for each row it printed.
     grouped: dict[Any, list] = {}
     for item in get_challenges():
         grouped.setdefault(item.ctf_id, []).append(item)

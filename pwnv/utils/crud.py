@@ -91,7 +91,6 @@ def search_challenges(
     has_service: bool | None = None,
     solved: bool | None = None,
 ) -> List[Challenge]:
-    """Return challenges whose searchable metadata contains ``query``."""
     needle = query.casefold().strip()
     requested_tags = {tag.casefold() for tag in tags or []}
     if (

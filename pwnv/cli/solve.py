@@ -32,6 +32,9 @@ def solve(
     import asyncio
     from datetime import datetime
 
+    from rich.console import Console
+    from rich.table import Table
+
     from pwnv.models.challenge import Solved
     from pwnv.utils import (
         add_tags,
@@ -51,9 +54,6 @@ def solve(
         raise typer.Exit(code=1)
 
     if history:
-        from rich.console import Console
-        from rich.table import Table
-
         challenge = resolve_challenge(
             challenge_name=challenge_name,
             ctf_name=ctf,

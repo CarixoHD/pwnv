@@ -21,7 +21,6 @@ app = typer.Typer(no_args_is_help=True)
 
 
 def _report(result: CompletedProcess[str]) -> None:
-    """Surface the output of a failed uv invocation."""
     from pwnv.utils import warn
 
     output = (result.stderr or result.stdout or "").strip()

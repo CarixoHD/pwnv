@@ -5,7 +5,6 @@ location of that file, exposes helpers to read and write it and provides
 simple accessor helpers used across the code base.
 """
 
-import os
 from collections.abc import Generator
 from contextlib import contextmanager
 from functools import lru_cache
@@ -22,6 +21,8 @@ _EMPTY_CONFIG: dict = {"ctfs": [], "challenges": [], "challenge_tags": []}
 
 def _resolve_config_path() -> Path:
     """Return the path of the configuration file."""
+    import os
+
     from pwnv.constants import DEFAULT_CONFIG_BASENAME, PWNV_CONFIG_ENV
 
     if override := os.getenv(PWNV_CONFIG_ENV):
@@ -32,9 +33,7 @@ def _resolve_config_path() -> Path:
         if candidate.is_file():
             return candidate
 
-    # click rather than typer, which re-exports this same function: this is the
-    # branch a default install takes, and `from pwnv import challenge` reaches
-    # it, so a solve script would import the whole CLI to find its config.
+    # click, not typer, so a solve script does not import the whole CLI.
     from click import get_app_dir
 
     return Path(get_app_dir("pwnv")) / DEFAULT_CONFIG_BASENAME
@@ -74,18 +73,12 @@ def load_config() -> dict:
 
 
 def invalidate_cache() -> None:
-    """
-    Clear the cached configuration.
-
-    Every write goes through here, so a long-lived process - a solve script
-    calling :func:`pwnv.api.current`, or the shell - sees a change another
-    ``pwnv`` process made rather than the config as it was at import time.
-    """
+    """Clear the cached configuration."""
     load_config.cache_clear()
 
 
 def _write_config_file(cfg: dict) -> None:
-    """Serialise ``cfg`` to disk via a temp file and an atomic rename."""
+    """Write ``cfg`` to disk via a temp file and an atomic rename."""
     import json
     import os
     from tempfile import NamedTemporaryFile
@@ -112,14 +105,7 @@ def save_config(cfg: dict) -> None:
 
 @contextmanager
 def config_transaction() -> Generator[dict]:
-    """
-    Yield the configuration for mutation, holding the lock for the whole cycle.
-
-    Reading and writing under a single lock keeps concurrent ``pwnv`` processes
-    from clobbering each other: without it two commands can both read the same
-    config, each apply their own change, and the second write silently discards
-    the first (a lost solve or a lost synced challenge).
-    """
+    """Yield the configuration for mutation, holding the lock for the whole cycle."""
     with _lock:
         cfg = _read_config_file()
         yield cfg

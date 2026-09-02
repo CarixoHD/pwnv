@@ -97,7 +97,6 @@ def test_export_removes_flags_and_submission_history(tmp_path):
 
 
 def _fresh_machine(tmp_path, name: str = "new-machine"):
-    """Point the workspace at an empty CTF root, as a new install would be."""
     ctfs_path = tmp_path / name
     ctfs_path.mkdir(parents=True, exist_ok=True)
     save_config(
@@ -112,7 +111,6 @@ def _fresh_machine(tmp_path, name: str = "new-machine"):
 
 
 def test_restore_puts_the_files_back_under_the_new_ctf_root(tmp_path):
-    """The move-to-a-new-PC path: backup here, restore against another root."""
     _, challenge = _create_workspace(tmp_path)
     (challenge.path / "solve.py").write_text("print('pwn')", encoding="utf-8")
     backup = backup_workspace(tmp_path / "backup")
@@ -131,12 +129,10 @@ def test_restore_puts_the_files_back_under_the_new_ctf_root(tmp_path):
 
 
 def test_restore_keeps_the_directory_names_the_backup_used(tmp_path):
-    """Names are recomputed on import; a backup has real directories to keep."""
     ctf = CTF(name="Example CTF", path=get_ctfs_path() / "example-ctf")
     challenge = Challenge(
         name="Web Challenge",
         ctf_id=ctf.id,
-        # `_unique_challenge_path` produces suffixes like this on a name clash.
         path=ctf.path / "web" / "web-challenge_2",
         category=Category.web,
     )

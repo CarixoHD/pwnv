@@ -13,7 +13,7 @@ same thing in the terminal.
 
 ### `pwnv doctor`
 
-Check configuration, paths, tools, and workspace consistency.
+Checks configuration, paths, tools, and workspace consistency.
 
 ```
 pwnv doctor [OPTIONS]
@@ -49,9 +49,7 @@ pwnv reset [OPTIONS]
 
 ### `pwnv shell-init`
 
-Print the shell functions that add `pwncd` to your session.
-
-Add `eval "$(pwnv shell-init)"` to your shell's rc file, or `pwnv shell-init | source` for fish.
+Prints the shell functions that add `pwncd` to your session. Add `eval "$(pwnv shell-init)"` to your shell's rc file, or `pwnv shell-init | source` for fish.
 
 ```
 pwnv shell-init [OPTIONS]
@@ -80,7 +78,7 @@ pwnv solve [OPTIONS]
 
 ### `pwnv status`
 
-Show challenge and point progress for the workspace.
+Shows challenge and point progress for the workspace.
 
 ```
 pwnv status [OPTIONS]
@@ -211,7 +209,7 @@ pwnv challenge path [OPTIONS] [challenge_name]
 
 ### `pwnv challenge env add`
 
-Install packages into a challenge-local virtual environment.
+Installs packages into a challenge-local virtual environment.
 
 ```
 pwnv challenge env add [OPTIONS] {packages}...
@@ -228,7 +226,7 @@ pwnv challenge env add [OPTIONS] {packages}...
 
 ### `pwnv challenge env run`
 
-Run a command with the challenge environment on PATH.
+Runs a command with the challenge environment on PATH.
 
 ```
 pwnv challenge env run [OPTIONS]
@@ -241,7 +239,7 @@ pwnv challenge env run [OPTIONS]
 
 ### `pwnv challenge note add`
 
-Append a timestamped entry to a challenge's NOTES.md file.
+Appends a timestamped entry to a challenge's NOTES.md file.
 
 ```
 pwnv challenge note add [OPTIONS] {text}
@@ -259,7 +257,7 @@ pwnv challenge note add [OPTIONS] {text}
 
 ### `pwnv challenge note show`
 
-Render a challenge's NOTES.md file.
+Renders a challenge's NOTES.md file.
 
 ```
 pwnv challenge note show [OPTIONS]
@@ -405,7 +403,7 @@ pwnv plugin select [OPTIONS]
 
 ### `pwnv workspace backup`
 
-Create a full archive, including challenge files and credentials.
+Creates a full archive, including challenge files and credentials.
 
 ```
 pwnv workspace backup [OPTIONS] [destination]
@@ -421,7 +419,7 @@ pwnv workspace backup [OPTIONS] [destination]
 
 ### `pwnv workspace restore`
 
-Restore a full backup archive: challenge files, notes, and credentials.
+Restores a full backup archive: challenge files, notes, and credentials.
 
 ```
 pwnv workspace restore [OPTIONS] {source}
@@ -438,7 +436,7 @@ pwnv workspace restore [OPTIONS] {source}
 
 ### `pwnv workspace export`
 
-Export portable metadata without challenge files or credentials.
+Exports portable metadata without challenge files or credentials.
 
 ```
 pwnv workspace export [OPTIONS] [destination]
@@ -450,7 +448,7 @@ pwnv workspace export [OPTIONS] [destination]
 
 ### `pwnv workspace import`
 
-Merge a portable export into the current workspace.
+Merges a portable export into the current workspace.
 
 ```
 pwnv workspace import [OPTIONS] {source}

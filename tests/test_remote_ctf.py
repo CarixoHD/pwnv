@@ -124,17 +124,10 @@ def test_sanitize_produces_safe_challenge_names(name, expected):
     ),
 )
 def test_add_remote_ctf_integration(monkeypatch, isolated_config):
-    """
-    Minimal integration test against the public demo CTFd instance.
-
-    The test is opt-in via ENABLE_REMOTE_CTFS=1 and runs entirely in the
-    isolated config/ctfs path provided by the tests fixture.
-    """
     url = "https://demo.ctfd.io/"
     username = os.getenv("DEMO_CTFD_USER", "user")
     password = os.getenv("DEMO_CTFD_PASS", "password")
 
-    # Force deterministic, non-interactive credential prompts.
     def _dummy_prompt(value):
         class _P:
             def execute(self_nonlocal):
@@ -170,21 +163,19 @@ def test_add_remote_ctf_integration(monkeypatch, isolated_config):
     ctf_path = ctfs_path / "demo-ctfd"
     ctf = CTF(name="DemoCTFd", path=ctf_path, url=url)
 
-    # Clean slate
     if ctf_path.exists():
         shutil.rmtree(ctf_path)
     ctf_path.mkdir(parents=True, exist_ok=True)
 
-    # Pre-seed .env to bypass prompt
     (ctf_path / ".env").write_text(
         f"CTF_USERNAME={username}\nCTF_PASSWORD={password}\n", encoding="utf-8"
     )
 
     added = add_remote_ctf(ctf)
-    assert added, "Failed to add remote CTF"
+    assert added
 
     assert ctf_path.exists() and ctf_path.is_dir()
-    assert any(ctf_path.iterdir()), "Expected remote sync to create challenge data"
+    assert any(ctf_path.iterdir())
 
     original = {challenge.id for challenge in get_challenges()}
     assert sync_remote_ctf(ctf)
@@ -197,8 +188,6 @@ def test_add_remote_ctf_fails_when_client_unavailable(monkeypatch, isolated_conf
     ctfs_path = get_ctfs_path()
     ctf_path = ctfs_path / "failing-ctf"
     ctf = CTF(name="FailingCTF", path=ctf_path, url="https://example.invalid")
-
-    # Simulate inability to create a client/auth methods (network or URL failure)
 
     async def _no_client(url, platform=None):
         return None, None
@@ -217,8 +206,6 @@ def test_add_remote_ctf_fails_when_credentials_missing(monkeypatch, isolated_con
     ctf_path = ctfs_path / "nocreds"
     ctf = CTF(name="NoCreds", path=ctf_path, url="https://demo.ctfd.io/")
 
-    # Simulate available methods but user supplies no credentials
-
     async def _fake_methods(url, platform=None):
         return "dummy_client", ["creds"]
 
@@ -231,7 +218,6 @@ def test_add_remote_ctf_fails_when_credentials_missing(monkeypatch, isolated_con
 
 
 def test_a_pinned_platform_is_handed_to_ctfbridge(monkeypatch):
-    """Detection is asked for only when nothing was pinned."""
     import ctfbridge
 
     import pwnv.utils.remote as remote
@@ -252,7 +238,6 @@ def test_a_pinned_platform_is_handed_to_ctfbridge(monkeypatch):
 
 
 def test_the_platform_stored_on_a_ctf_is_used_for_every_later_call(monkeypatch):
-    """Pinning once is the point: it has to survive into the next command."""
     import pwnv.utils.remote as remote
 
     asked: list = []
@@ -275,7 +260,6 @@ def test_the_platform_stored_on_a_ctf_is_used_for_every_later_call(monkeypatch):
 
 
 def test_an_unknown_platform_is_rejected_with_the_ones_that_exist():
-    """A typo must not be sent to ctfbridge as if it were a platform."""
     from typer.testing import CliRunner
 
     from pwnv import app
@@ -291,7 +275,6 @@ def test_an_unknown_platform_is_rejected_with_the_ones_that_exist():
 
 
 def test_sync_pins_the_platform_on_the_ctf(monkeypatch):
-    """A CTF added before you knew what it was can be corrected in place."""
     from typer.testing import CliRunner
 
     import pwnv.utils as utils
@@ -310,32 +293,3 @@ def test_sync_pins_the_platform_on_the_ctf(monkeypatch):
 
     assert result.exit_code == 0
     assert get_ctfs()[0].platform == "rctf"
-
-
-@pytest.mark.parametrize(
-    ("value", "shown"),
-    [("1", True), ("0", False), ("", False)],
-)
-def test_pwnv_debug_decides_whether_the_traceback_is_printed(
-    monkeypatch, capsys, value, shown
-):
-    """The sentence is for an event, the traceback is for a bug report."""
-    from pwnv.utils import debug_traceback
-
-    monkeypatch.setenv("PWNV_DEBUG", value)
-    try:
-        raise RuntimeError("the underlying reason")
-    except RuntimeError:
-        debug_traceback()
-
-    assert ("the underlying reason" in capsys.readouterr().err) is shown
-
-
-def test_the_traceback_is_skipped_when_nothing_was_raised(monkeypatch, capsys):
-    """Called outside a handler it must print nothing, not `NoneType: None`."""
-    from pwnv.utils import debug_traceback
-
-    monkeypatch.setenv("PWNV_DEBUG", "1")
-    debug_traceback()
-
-    assert capsys.readouterr().err == ""

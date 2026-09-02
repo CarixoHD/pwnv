@@ -69,8 +69,6 @@ from pwnv.utils.serialize import (
 )
 from pwnv.utils.ui import (
     command,
-    debug_enabled,
-    debug_traceback,
     error,
     format_service,
     info,
@@ -99,6 +97,7 @@ from pwnv.utils.workspace import (
 )
 
 __all__ = [
+    # serialize
     "challenge_payload",
     "challenges_payload",
     "ctf_payload",
@@ -148,6 +147,7 @@ __all__ = [
     "remote_solve",
     "sanitize",
     "sync_remote_ctf",
+    # selection
     "resolve_challenge",
     # ui
     "prompt_confirm",
@@ -168,8 +168,6 @@ __all__ = [
     "warn",
     "info",
     "command",
-    "debug_enabled",
-    "debug_traceback",
     "show_plugin",
     # plugin
     "get_bundled_examples_directory",

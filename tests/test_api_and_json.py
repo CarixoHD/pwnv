@@ -1,5 +1,3 @@
-"""Tests for the solve-script object and the machine-readable output contract."""
-
 import json
 import os
 import subprocess
@@ -14,10 +12,6 @@ from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category, Solved
 from pwnv.models.ctf import Status
 from pwnv.utils import add_challenge, add_ctf, get_ctfs_path
-
-# --------------------------------------------------------------------------- #
-# fixtures
-# --------------------------------------------------------------------------- #
 
 
 def _ctf(name: str, *, running: Status = Status.running, url: str | None = None) -> CTF:
@@ -55,10 +49,9 @@ def _update(challenge) -> None:
 
 
 def _strict_runner() -> CliRunner:
-    """A runner that keeps stderr out of stdout, so `--json` can be parsed."""
     try:
         return CliRunner(mix_stderr=False)
-    except TypeError:  # click >= 8.2 never mixes them
+    except TypeError:
         return CliRunner()
 
 
@@ -66,11 +59,6 @@ def _invoke(*args: str):
     from pwnv import app
 
     return _strict_runner().invoke(app, list(args))
-
-
-# --------------------------------------------------------------------------- #
-# resolution
-# --------------------------------------------------------------------------- #
 
 
 def test_it_resolves_the_challenge_you_are_standing_in(monkeypatch):
@@ -122,7 +110,6 @@ def test_a_path_can_be_asked_about_directly(monkeypatch, tmp_path):
 
 
 def test_it_sees_a_sync_that_ran_after_the_script_started(monkeypatch):
-    """The whole point: values bind when they are read, not when scaffolded."""
     from pwnv.api import current
     from pwnv.utils import get_challenges, update_challenge
 
@@ -139,13 +126,7 @@ def test_it_sees_a_sync_that_ran_after_the_script_started(monkeypatch):
     assert (moved.host, moved.port) == ("relocated.example.org", 31337)
 
 
-# --------------------------------------------------------------------------- #
-# it is a ctfbridge challenge
-# --------------------------------------------------------------------------- #
-
-
 def test_what_comes_back_is_the_platform_model(monkeypatch):
-    """No pwnv wrapper: the helpers a solve script uses are ctfbridge's own."""
     from ctfbridge.models.challenge import Challenge as BridgeChallenge
 
     from pwnv.api import current
@@ -199,7 +180,6 @@ def test_attachments_arrive_as_the_collection_with_their_local_paths(monkeypatch
     stored = next(item for item in _stored_challenges() if item.name == "Handout")
     stored.extras = {
         "attachments": [
-            # `sha256` is pwnv's own bookkeeping; the platform model ignores it.
             {"name": "vuln", "local_path": str(binary), "sha256": "deadbeef"}
         ]
     }
@@ -224,18 +204,7 @@ def test_solved_and_flag_come_from_the_local_record(monkeypatch):
     assert resolved.flag == "flag{x}"
 
 
-# --------------------------------------------------------------------------- #
-# import cost
-# --------------------------------------------------------------------------- #
-
-
 def test_importing_the_object_does_not_drag_in_the_cli(monkeypatch):
-    """
-    A solve script pays for what it uses.
-
-    Assembling the Typer app imports every command module; resolving a challenge
-    needs none of them, so `from pwnv import challenge` must not reach typer.
-    """
     ctf = _ctf("ApiCTF")
     challenge = _challenge(ctf, "Probe")
 
@@ -262,14 +231,6 @@ def test_importing_the_object_does_not_drag_in_the_cli(monkeypatch):
 
 
 def test_the_default_config_location_does_not_reach_for_typer(tmp_path):
-    """
-    The same assertion, on the branch an ordinary install actually takes.
-
-    With no `PWNV_CONFIG` and no config file above the working directory, the
-    path comes from the application directory - which used to be resolved with
-    `typer.get_app_dir`, so every solve script on a normal machine imported the
-    CLI after all. It is `click.get_app_dir`, which typer only re-exports.
-    """
     home = tmp_path / "home"
     (home / ".config").mkdir(parents=True)
     work = tmp_path / "work"
@@ -311,11 +272,6 @@ def test_the_default_config_location_does_not_reach_for_typer(tmp_path):
     assert result.stdout.strip().startswith(str(home))
 
 
-# --------------------------------------------------------------------------- #
-# the json contract
-# --------------------------------------------------------------------------- #
-
-
 def test_challenge_info_json_carries_the_whole_record(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     ctf = _ctf("JsonCTF")
@@ -344,7 +300,6 @@ def test_challenge_info_json_carries_the_whole_record(monkeypatch, tmp_path):
 
 
 def test_json_mode_reports_the_scope_instead_of_opening_a_picker(monkeypatch, tmp_path):
-    """There is nobody to answer a prompt on the other end of a pipe."""
     monkeypatch.chdir(tmp_path)
     ctf = _ctf("JsonCTF")
     _challenge(ctf, "One")
@@ -455,18 +410,7 @@ def test_status_json_still_parses_now_that_it_shares_the_flag(monkeypatch, tmp_p
     assert payload["ctfs"][0]["ctf"] == "JsonCTF"
 
 
-# --------------------------------------------------------------------------- #
-# stdout stays a data channel
-# --------------------------------------------------------------------------- #
-
-
 def test_diagnostics_never_land_in_the_data_channel(monkeypatch, tmp_path):
-    """
-    A warning printed on stdout would make `--json` output impossible to parse.
-
-    `challenge info --json` for a missing CTF must put the complaint on stderr
-    and nothing at all on stdout.
-    """
     monkeypatch.chdir(tmp_path)
     ctf = _ctf("JsonCTF")
     _challenge(ctf, "One")
@@ -500,12 +444,6 @@ def test_the_no_challenges_guard_writes_to_stderr(monkeypatch, tmp_path):
 def test_an_empty_workspace_is_an_empty_list_not_an_error(
     monkeypatch, tmp_path, argv, key
 ):
-    """
-    The guards that check for records must not fire in `--json` mode.
-
-    "There is nothing here" is an answer a script can act on; exit code 1 with
-    no document at all is one it has to tell apart from a crash.
-    """
     monkeypatch.chdir(tmp_path)
 
     result = _invoke(*argv)

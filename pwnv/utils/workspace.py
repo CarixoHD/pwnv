@@ -1,5 +1,3 @@
-"""Backup and portability helpers for pwnv workspaces."""
-
 import json
 import tarfile
 from pathlib import Path
@@ -11,12 +9,10 @@ _VENV_DIR_NAMES = (DEFAULT_PWNVENV_FOLDER_NAME, ".venv")
 
 
 def _is_virtualenv_artifact(path: Path) -> bool:
-    """Return ``True`` if ``path`` lives inside a generated virtualenv."""
     return any(name in path.parts for name in _VENV_DIR_NAMES)
 
 
 def backup_workspace(destination: Path) -> Path:
-    """Create a complete ``tar.gz`` backup and return its final path."""
     from pwnv.utils.config import get_config_path, get_ctfs_path
 
     destination = destination.expanduser().resolve()
@@ -44,9 +40,6 @@ def backup_workspace(destination: Path) -> Path:
 def restore_workspace(
     source: Path, *, replace: bool = False, force: bool = False
 ) -> dict[str, int]:
-    """
-    Restore a ``workspace backup`` archive into the current workspace.
-    """
     import tempfile
 
     from pwnv.utils.config import get_ctfs_path
@@ -81,7 +74,6 @@ def restore_workspace(
 
 
 def _copy_tree(source_root: Path, destination_root: Path, *, force: bool) -> int:
-    """Copy the archived tree into place and report how many files landed."""
     import shutil
 
     if not source_root.is_dir():
@@ -105,9 +97,6 @@ def _copy_tree(source_root: Path, destination_root: Path, *, force: bool) -> int
 def _rebase_by_layout(
     imported: Init, source_root: Path, destination_root: Path
 ) -> None:
-    """
-    Move every record to the same place under the new CTF root.
-    """
     from pwnv.utils.remote import sanitize
 
     ctf_paths: dict = {}
@@ -135,15 +124,6 @@ def _rebase_by_layout(
 def _rebase_attachments(
     challenge: Challenge, source_root: Path | None, destination_root: Path
 ) -> None:
-    """
-    Point downloaded attachments at the copies that travelled with the archive.
-
-    The files move with the challenge directory, but ``local_path`` is recorded
-    as an absolute path, so without this a solve script on the new machine reads
-    a path from the old one. An attachment stored outside the CTF root - or
-    arriving from an export, which carries no files at all - lands in the
-    challenge directory, where a re-download would put it.
-    """
     extras = challenge.extras if isinstance(challenge.extras, dict) else {}
     attachments = extras.get("attachments")
     if not isinstance(attachments, list):
@@ -162,7 +142,6 @@ def _rebase_attachments(
 
 
 def _relocate(path: Path, source_root: Path, destination_root: Path) -> Path | None:
-    """The same relative location under a different root, if there is one."""
     try:
         return destination_root / path.relative_to(source_root)
     except ValueError:
@@ -170,7 +149,6 @@ def _relocate(path: Path, source_root: Path, destination_root: Path) -> Path | N
 
 
 def export_workspace(destination: Path) -> Path:
-    """Export portable workspace metadata without challenge files or secrets."""
     import copy
 
     from pwnv.utils.config import load_config
@@ -192,16 +170,6 @@ def export_workspace(destination: Path) -> Path:
 
 
 def import_workspace(source: Path, *, replace: bool = False) -> dict[str, int]:
-    """
-    Import metadata, rebasing all workspace paths to the current CTF root.
-
-    By default the import is *merged* into the current workspace: CTFs and
-    challenges already present are left alone and only new records are added,
-    so importing a teammate's export cannot discard your own solves. Pass
-    ``replace=True`` for the previous behaviour of overwriting everything.
-
-    Returns a summary of how many records were added and skipped.
-    """
     from pwnv.utils.config import get_ctfs_path
 
     data = json.loads(source.expanduser().resolve().read_text(encoding="utf-8"))
@@ -213,12 +181,6 @@ def import_workspace(source: Path, *, replace: bool = False) -> dict[str, int]:
 
 
 def _rebase_by_name(imported: Init, ctfs_path: Path) -> None:
-    """
-    Point every record at the directory its name implies under ``ctfs_path``.
-
-    An export carries no files, so there is no layout to preserve: the
-    directories are recreated from the names, exactly as ``pwnv ctf add`` would.
-    """
     from pwnv.utils.remote import sanitize
 
     ctf_paths: dict = {}
@@ -242,7 +204,6 @@ def _rebase_by_name(imported: Init, ctfs_path: Path) -> None:
 
 
 def _merge_records(imported: Init, *, replace: bool) -> dict[str, int]:
-    """Fold ``imported`` into the stored configuration, skipping duplicates."""
     from pwnv.utils.config import config_transaction
 
     summary = {
@@ -270,16 +231,11 @@ def _merge_records(imported: Init, *, replace: bool) -> dict[str, int]:
         ctf_id_by_name = {item["name"]: str(item["id"]) for item in existing_ctfs}
         known_challenge_ids = {str(item["id"]) for item in existing_challenges}
         known_challenge_paths = {str(item["path"]) for item in existing_challenges}
-        # Incoming CTF id -> the id the same event already has here.
         adopted: dict[str, str] = {}
 
         for ctf_data in incoming.get("ctfs", []):
             incoming_id = str(ctf_data["id"])
             if incoming_id in known_ctf_ids or ctf_data["name"] in known_ctf_names:
-                # The event is already here, under an id of its own if it was
-                # created rather than imported. Its challenges are re-pointed at
-                # that record, because otherwise they belong to no CTF in this
-                # config and are dropped - after their files have been copied.
                 adopted[incoming_id] = ctf_id_by_name.get(ctf_data["name"], incoming_id)
                 summary["ctfs_skipped"] += 1
                 continue

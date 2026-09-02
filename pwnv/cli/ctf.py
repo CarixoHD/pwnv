@@ -19,7 +19,6 @@ PLATFORM = typer.Option(
 
 
 def _checked_platform(platform: str | None) -> str | None:
-    """Reject a platform name ctfbridge does not know, listing the ones it does."""
     from pwnv.utils import error
     from pwnv.utils.remote import known_platforms
 
@@ -109,7 +108,6 @@ def add(
             ),
             credentials if has_credentials else None,
         ):
-            # add_remote_ctf has already said what went wrong.
             raise typer.Exit(code=1)
     else:
         add_ctf(CTF(name=name, path=path))
@@ -176,7 +174,6 @@ def info_(
         raise typer.Exit(code=1)
 
     if json_output:
-        # Without a name to go on, report every CTF rather than prompt.
         emit_json({"ctfs": ctfs_payload([chosen_ctf] if chosen_ctf else get_ctfs())})
         return
 
@@ -324,8 +321,6 @@ def sync(
         warn("Selected CTF has no remote URL.")
         return
 
-    # Pinning it here is how a CTF added before the detection went wrong gets
-    # fixed: the choice is stored, so later syncs and flag submissions use it.
     platform = _checked_platform(platform)
     if platform and platform != chosen_ctf.platform:
         chosen_ctf.platform = platform
@@ -349,7 +344,6 @@ _MAX_WATCH_INTERVAL = 15 * 60
 
 
 def _watch(ctf: CTF, *, interval: int, refresh_attachments: bool) -> None:
-    """Poll ``ctf`` until it stops running or the user interrupts."""
     import time
 
     from pwnv.utils import (

@@ -1,5 +1,3 @@
-"""Tests for the scaffold, pwncd, watch-sync, and status workflows."""
-
 import asyncio
 import json
 import textwrap
@@ -19,10 +17,6 @@ from pwnv.utils import (
     get_challenges,
     get_ctfs_path,
 )
-
-# --------------------------------------------------------------------------- #
-# fixtures
-# --------------------------------------------------------------------------- #
 
 
 def _ctf(name: str, *, running: Status = Status.running, url: str | None = None) -> CTF:
@@ -49,7 +43,6 @@ def _challenge(ctf: CTF, name: str, category: Category = Category.pwn, **kwargs)
 
 
 def _install_plugin(category: Category, name: str, marker: str) -> None:
-    """Write a plugin plus its template and select it for ``category``."""
     from pwnv.core.plugin_manager import plugin_manager
     from pwnv.utils.plugin import (
         get_plugins_directory,
@@ -86,21 +79,10 @@ def _install_plugin(category: Category, name: str, marker: str) -> None:
 
 
 def _runner() -> CliRunner:
-    """
-    A runner that keeps stderr out of stdout.
-
-    `pwncd` is `cd "$(pwnv challenge path)"`, so anything that leaks onto stdout
-    ends up in the path. Click 8.1 folds the two together unless asked not to.
-    """
     try:
         return CliRunner(mix_stderr=False)
     except TypeError:  # click >= 8.2 never mixes them
         return CliRunner()
-
-
-# --------------------------------------------------------------------------- #
-# scaffold
-# --------------------------------------------------------------------------- #
 
 
 def test_scaffold_writes_the_template_and_runs_plugin_logic():
@@ -118,7 +100,6 @@ def test_scaffold_writes_the_template_and_runs_plugin_logic():
 
 
 def test_scaffold_never_overwrites_work_in_progress():
-    """The whole point of the guard: two hours of exploit must survive."""
     ctf = _ctf("ScaffoldCTF")
     challenge = _challenge(ctf, "Baby ROP")
     _install_plugin(Category.pwn, "pwnplug", "PWN")
@@ -159,7 +140,6 @@ def test_scaffold_force_overwrites():
 
 
 def test_scaffold_applies_a_foreign_category_without_touching_the_challenge():
-    """A web challenge can get the pwn template; the record stays a web one."""
     ctf = _ctf("ScaffoldCTF")
     challenge = _challenge(ctf, "EZ XSS", category=Category.web)
     _install_plugin(Category.pwn, "pwnplug", "PWN")
@@ -184,7 +164,6 @@ def test_scaffold_applies_a_foreign_category_without_touching_the_challenge():
 
     assert result.exit_code == 0
     assert (challenge.path / "solve.py").read_text() == "# WEB EZ XSS\n"
-    # The suffix keeps both templates side by side instead of colliding.
     assert (challenge.path / "solve_pwn.py").read_text() == "# PWN EZ XSS\n"
 
     stored = next(ch for ch in get_challenges() if ch.name == "EZ XSS")
@@ -205,11 +184,6 @@ def test_scaffold_reports_a_category_with_no_plugin():
     assert "plugin select" in result.output
 
 
-# --------------------------------------------------------------------------- #
-# pwncd
-# --------------------------------------------------------------------------- #
-
-
 def test_challenge_path_prints_only_the_directory():
     ctf = _ctf("PathCTF")
     challenge = _challenge(ctf, "Baby ROP")
@@ -221,7 +195,6 @@ def test_challenge_path_prints_only_the_directory():
 
 
 def test_challenge_path_accepts_the_directory_name():
-    """`pwncd baby-rop` is what shell completion gives you."""
     ctf = _ctf("PathCTF")
     challenge = _challenge(ctf, "Baby ROP")
 
@@ -232,7 +205,6 @@ def test_challenge_path_accepts_the_directory_name():
 
 
 def test_duplicate_names_resolve_to_the_running_ctf():
-    """Every event has a "sanity"; the stopped one from last month is not it."""
     live = _ctf("LiveCTF")
     old = _ctf("OldCTF", running=Status.stopped)
     wanted = _challenge(live, "Sanity")
@@ -268,14 +240,12 @@ def test_ambiguous_names_across_running_ctfs_reach_the_picker(monkeypatch):
 
 
 def test_challenge_path_fails_loudly_on_a_miss():
-    """`pwncd typo` must not leave you in a random directory."""
     ctf = _ctf("PathCTF")
     _challenge(ctf, "Baby ROP")
 
     result = _runner().invoke(app, ["challenge", "path", "nope"])
 
     assert result.exit_code == 1
-    # Nothing on stdout, so `cd "$(...)"` has nothing to cd into.
     assert result.stdout.strip() == ""
     assert "does not exist" in result.stderr
 
@@ -293,11 +263,6 @@ def test_shell_init_rejects_an_unknown_shell():
     result = CliRunner().invoke(app, ["shell-init", "--shell", "nushell"])
 
     assert result.exit_code == 1
-
-
-# --------------------------------------------------------------------------- #
-# sync: attachments and diffs
-# --------------------------------------------------------------------------- #
 
 
 class _Attachment:
@@ -374,13 +339,12 @@ def test_unchanged_attachments_are_not_downloaded_twice():
         [_remote("Baby ROP", attachments=[_Attachment("chal.zip", b"binary")])],
     )
 
-    assert attachments.downloaded == ["Baby ROP"]  # not re-downloaded
+    assert attachments.downloaded == ["Baby ROP"]
     assert second["attachments_reused"] == ["Baby ROP"]
     assert second["unchanged"] == 1
 
 
 def test_a_republished_attachment_is_downloaded_again():
-    """Organisers ship fixed binaries mid-event; the digest has to notice."""
     ctf = _ctf("AttachCTF", url="https://x.invalid")
     client, attachments = _fake_client()
     _sync(
@@ -439,7 +403,6 @@ def test_sync_summarises_what_actually_changed():
         client,
         ctf,
         [
-            # Dynamic scoring dropped the price and someone solved it.
             _remote("Baby ROP", value=80, solved=True),
             _remote("Sanity", value=10),
             _remote("New Chal", value=500),
@@ -464,7 +427,6 @@ def test_sync_notices_an_edited_description():
 
 
 def test_watch_stops_when_the_ctf_stops(monkeypatch):
-    """A forgotten watcher must not poll a finished event all night."""
     import time
 
     import pwnv.utils as utils
@@ -515,11 +477,6 @@ def test_sync_renders_a_diff_instead_of_the_whole_scoreboard(monkeypatch):
     assert "12 unchanged" in result.output
 
 
-# --------------------------------------------------------------------------- #
-# status
-# --------------------------------------------------------------------------- #
-
-
 def test_status_detail_breaks_a_ctf_down_by_category():
     ctf = _ctf("StatusCTF", url="https://x.invalid")
     _challenge(
@@ -564,14 +521,7 @@ def test_status_json_carries_the_detail_and_current_scope():
     assert payload["current"]["ctf"] == "StatusCTF"
 
 
-# --------------------------------------------------------------------------- #
-# bundled examples
-# --------------------------------------------------------------------------- #
-
-
 def _run_init(isolated_config, tmp_path, monkeypatch, *extra: str):
-    """Run `pwnv init` for real, minus uv."""
-    # init refuses to run over an existing config, and the fixture writes one.
     isolated_config.unlink()
     monkeypatch.setattr("shutil.which", lambda _name: "/usr/bin/uv")
     monkeypatch.setattr(
@@ -594,7 +544,6 @@ def _run_init(isolated_config, tmp_path, monkeypatch, *extra: str):
 def test_init_copies_the_bundled_plugins_and_templates(
     isolated_config, tmp_path, monkeypatch
 ):
-    """A fresh workspace should be able to scaffold a pwn challenge right away."""
     from pwnv.utils import (
         get_plugin_selection,
         get_plugins_directory,
@@ -620,7 +569,6 @@ def test_init_can_skip_the_bundled_examples(isolated_config, tmp_path, monkeypat
 
 
 def test_bundled_examples_never_overwrite_your_edits():
-    """Re-running the install must not undo a plugin you customised."""
     from pwnv.utils import (
         get_plugin_selection,
         get_plugins_directory,
@@ -641,7 +589,6 @@ def test_bundled_examples_never_overwrite_your_edits():
 
 
 def test_the_bundled_plugin_actually_loads():
-    """The example is the first thing anyone reads, so it has to import."""
     from pwnv.core.plugin_manager import plugin_manager
     from pwnv.utils import install_bundled_examples
 

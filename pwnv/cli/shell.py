@@ -1,13 +1,9 @@
-"""Shell integration for pwnv."""
-
 import typer
 
 app = typer.Typer(no_args_is_help=True)
 
 _POSIX_INIT = """\
 pwncd() {
-    # `cd` has to happen in this shell, so pwnv prints the directory and the
-    # function does the moving. The picker draws on the terminal, not stdout.
     local target
     target="$(command pwnv challenge path "$@")" || return $?
     [ -n "$target" ] || return 1
@@ -40,9 +36,8 @@ def shell_init(
     ),
 ) -> None:
     """
-    Print the shell functions that add `pwncd` to your session.
-
-    Add `eval "$(pwnv shell-init)"` to your shell's rc file, or
+    Prints the shell functions that add `pwncd` to your session. Add
+    `eval "$(pwnv shell-init)"` to your shell's rc file, or
     `pwnv shell-init | source` for fish.
     """
     import os

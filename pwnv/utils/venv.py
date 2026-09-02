@@ -1,18 +1,14 @@
-"""Helpers for the uv-managed virtual environments pwnv creates."""
-
 from pathlib import Path
 
 from pwnv.constants import DEFAULT_PWNVENV_FOLDER_NAME
 
 
 def venv_python(environment: Path) -> Path:
-    """Return the interpreter path inside a uv virtual environment."""
     windows = environment / "Scripts" / "python.exe"
     return windows if windows.exists() else environment / "bin" / "python"
 
 
 def ctf_env_path(ctfs_path: Path | None = None) -> Path:
-    """Return the path of the shared CTF virtual environment."""
     if ctfs_path is None:
         from pwnv.utils.config import get_ctfs_path
 
@@ -21,12 +17,6 @@ def ctf_env_path(ctfs_path: Path | None = None) -> Path:
 
 
 def installed_packages(python_path: Path) -> set[str] | None:
-    """
-    Return the normalised names of packages installed for ``python_path``.
-
-    ``None`` is returned when uv is unavailable or the environment cannot be
-    inspected.
-    """
     import json
     import shutil
     import subprocess

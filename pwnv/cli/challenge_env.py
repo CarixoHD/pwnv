@@ -1,5 +1,3 @@
-"""Per-challenge Python environments."""
-
 from pathlib import Path
 
 import typer
@@ -35,7 +33,7 @@ def add(
     challenge_name: str | None = typer.Option(None, "--challenge"),
     ctf: str | None = typer.Option(None, "--ctf"),
 ) -> None:
-    """Install packages into a challenge-local virtual environment."""
+    """Installs packages into a challenge-local virtual environment."""
     import subprocess
 
     from pwnv.utils import error, resolve_challenge, success
@@ -63,7 +61,7 @@ def run(
     challenge_name: str | None = typer.Option(None, "--challenge"),
     ctf: str | None = typer.Option(None, "--ctf"),
 ) -> None:
-    """Run a command with the challenge environment on PATH."""
+    """Runs a command with the challenge environment on PATH."""
     import os
     import subprocess
 

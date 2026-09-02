@@ -1,5 +1,3 @@
-"""Regression tests for defects that would bite during a live CTF."""
-
 import json
 import tarfile
 from pathlib import Path
@@ -21,7 +19,6 @@ from pwnv.utils import (
 
 
 def _remote_workspace():
-    """A CTF with a remote URL and one unsolved challenge."""
     ctf = CTF(
         name="RemoteCTF", path=get_ctfs_path() / "remotectf", url="https://ctf.invalid"
     )
@@ -39,7 +36,6 @@ def _remote_workspace():
 
 
 def test_rejected_flag_does_not_mark_challenge_solved(monkeypatch):
-    """A flag the platform rejects must not be recorded as a solve."""
     import pwnv.utils as utils
 
     _remote_workspace()
@@ -64,18 +60,15 @@ def test_rejected_flag_does_not_mark_challenge_solved(monkeypatch):
         ],
     )
 
-    # Non-zero exit so `pwnv solve ... && echo solved` cannot lie.
     assert result.exit_code == 1
     challenge = get_challenges()[0]
     assert challenge.solved == Solved.unsolved
     assert challenge.flag is None
-    # The attempt is still recorded for --history.
     assert len(challenge.extras["flag_history"]) == 1
     assert challenge.extras["flag_history"][0]["result"] == "rejected-or-failed"
 
 
 def test_challenge_remains_solvable_after_a_rejected_flag(monkeypatch):
-    """A typo must not lock the challenge out of `pwnv solve` forever."""
     import pwnv.utils as utils
 
     _remote_workspace()
@@ -106,7 +99,6 @@ def test_challenge_remains_solvable_after_a_rejected_flag(monkeypatch):
 
 
 def test_guard_failure_exits_non_zero():
-    """Guards must fail the process, not print a warning and return success."""
     from pwnv.utils.guards import _guard
 
     guarded = _guard(lambda: False, "nothing here")(lambda: "ran")
@@ -117,7 +109,6 @@ def test_guard_failure_exits_non_zero():
 
 
 def test_reset_only_removes_pwnv_artifacts():
-    """`pwnv reset` must never rmtree the config file's parent directory."""
     from pwnv.utils import get_config_path
 
     config_dir = get_config_path().parent
@@ -158,14 +149,12 @@ def test_reset_only_removes_pwnv_artifacts():
     ],
 )
 def test_category_normalisation(raw, expected):
-    """Real-world platform category labels map to the right Category."""
     from pwnv.utils import normalise_category
 
     assert normalise_category(raw) == expected
 
 
 def test_sync_keeps_the_platform_challenge_name():
-    """The scoreboard name must survive sync; only the directory is sanitized."""
     import asyncio
     from types import SimpleNamespace
 
@@ -200,7 +189,6 @@ def test_sync_keeps_the_platform_challenge_name():
 
 
 def test_backup_excludes_challenge_virtualenvs(tmp_path):
-    """Generated venvs must not be archived into every backup."""
     from pwnv.utils import backup_workspace
 
     ctf = CTF(name="VenvCTF", path=get_ctfs_path() / "venvctf")
@@ -231,7 +219,6 @@ def test_backup_excludes_challenge_virtualenvs(tmp_path):
 
 
 def test_import_merges_instead_of_discarding_local_work(tmp_path):
-    """Importing a teammate's export must not delete your own CTFs."""
     from pwnv.utils import import_workspace
 
     mine = CTF(name="MyCTF", path=get_ctfs_path() / "myctf")
@@ -283,11 +270,9 @@ def test_import_merges_instead_of_discarding_local_work(tmp_path):
     assert names == {"MyCTF", "TheirCTF"}
     assert summary["ctfs_added"] == 1
     assert summary["challenges_added"] == 1
-    # Local work is untouched and the imported challenge is rebased locally.
     challenges = {ch.name: ch for ch in get_challenges()}
     assert challenges["my-chal"].solved == Solved.solved
     assert challenges["their-chal"].path.is_relative_to(get_ctfs_path())
-    # Importing the same export twice is a no-op rather than a duplication.
     again = import_workspace(export_file)
     assert again["ctfs_added"] == 0
     assert again["challenges_added"] == 0
@@ -295,7 +280,6 @@ def test_import_merges_instead_of_discarding_local_work(tmp_path):
 
 
 def test_import_replace_still_available(tmp_path):
-    """`--replace` keeps the old destructive behaviour when asked for."""
     from pwnv.utils import export_workspace, import_workspace
 
     add_ctf(CTF(name="Original", path=get_ctfs_path() / "original"))
@@ -310,7 +294,6 @@ def test_import_replace_still_available(tmp_path):
 
 
 def test_current_challenge_resolves_after_a_directory_change(monkeypatch):
-    """Challenge lookup must use the live cwd, not the one frozen at import."""
     from pwnv.utils import crud
 
     ctf = CTF(name="CwdCTF", path=get_ctfs_path() / "cwdctf")
@@ -333,12 +316,10 @@ def test_current_challenge_resolves_after_a_directory_change(monkeypatch):
 
 
 def test_config_transaction_reads_fresh_state_under_the_lock():
-    """A transaction must not build on a stale cached read."""
     from pwnv.utils.config import config_transaction, get_config_path, load_config
 
-    load_config()  # prime the lru_cache
+    load_config()
 
-    # Simulate another pwnv process writing while our cache is warm.
     raw = json.loads(get_config_path().read_text(encoding="utf-8"))
     raw["challenge_tags"] = ["written-by-another-process"]
     get_config_path().write_text(json.dumps(raw), encoding="utf-8")
@@ -354,7 +335,6 @@ def test_config_transaction_reads_fresh_state_under_the_lock():
 
 
 def test_corrupt_config_reports_cleanly_instead_of_traceback():
-    """A truncated config must produce a readable error, not a JSONDecodeError."""
     from pwnv.utils.config import get_config_path, invalidate_cache, load_config
 
     get_config_path().write_text('{"ctfs": [', encoding="utf-8")
@@ -366,7 +346,6 @@ def test_corrupt_config_reports_cleanly_instead_of_traceback():
 
 
 def test_expired_session_is_retried_with_stored_credentials(tmp_path, monkeypatch):
-    """A session that goes stale mid-event must re-login, not just fail."""
     from pwnv.utils import remote as remote_mod
 
     ctf = CTF(
@@ -382,7 +361,6 @@ def test_expired_session_is_retried_with_stored_credentials(tmp_path, monkeypatc
 
     def _fake_fetch(client, ctf_arg):
         calls["fetch"] += 1
-        # First fetch fails as an expired cookie would; the retry succeeds.
         return None if calls["fetch"] == 1 else []
 
     async def _fetch(client, ctf_arg):
@@ -401,13 +379,11 @@ def test_expired_session_is_retried_with_stored_credentials(tmp_path, monkeypatc
     monkeypatch.setattr(remote_mod, "get_remote_credential_methods", _methods)
 
     assert remote_mod.sync_remote_ctf(ctf) is not None
-    # One login for the initial .env auth, one for the expiry retry.
     assert calls["login"] == 2
     assert calls["fetch"] == 2
 
 
 def test_ctf_directory_gets_a_gitignore_for_secrets():
-    """Credentials and cookie jars must not be committable by accident."""
     from pwnv.utils.remote import protect_ctf_secrets
 
     ctf = CTF(name="ShareCTF", path=get_ctfs_path() / "sharectf")
@@ -418,7 +394,6 @@ def test_ctf_directory_gets_a_gitignore_for_secrets():
     assert ".env" in entries
     assert ".session" in entries
 
-    # Running again is idempotent and preserves anything already there.
     (ctf.path / ".gitignore").write_text("custom-entry\n", encoding="utf-8")
     protect_ctf_secrets(ctf.path)
     entries = (ctf.path / ".gitignore").read_text(encoding="utf-8").split()
@@ -427,7 +402,6 @@ def test_ctf_directory_gets_a_gitignore_for_secrets():
 
 
 def test_plugin_module_does_not_shadow_stdlib(tmp_path):
-    """A plugin named after a stdlib module must not hijack that import."""
     import sys
 
     from pwnv.core.plugin_manager import PluginManager, plugin_name
@@ -451,18 +425,16 @@ def test_plugin_module_does_not_shadow_stdlib(tmp_path):
     manager = PluginManager()
     manager.discover_and_load_plugins()
 
-    # The real stdlib json is still importable and intact.
     import json as json_module
 
     assert sys.modules["json"] is json_module
     assert hasattr(json_module, "dumps")
 
     loaded = [p for p in manager.get_all_plugins() if plugin_name(p) == "json"]
-    assert loaded, "the plugin should still load under its own name"
+    assert loaded
 
 
 def test_local_challenge_flag_submission_reports_missing_remote_id(monkeypatch):
-    """A locally-created challenge explains itself instead of failing mutely."""
     import asyncio
 
     from pwnv.utils.remote import remote_solve
@@ -487,7 +459,6 @@ def test_local_challenge_flag_submission_reports_missing_remote_id(monkeypatch):
 
 
 def test_sync_keeps_challenges_whose_names_sanitize_identically():
-    """Distinct platform challenges must not collapse into one record."""
     import asyncio
     from types import SimpleNamespace
 
@@ -521,16 +492,13 @@ def test_sync_keeps_challenges_whose_names_sanitize_identically():
     challenges = get_challenges()
     assert len(challenges) == 3
     assert {ch.extras["slug"] for ch in challenges} == {"id-1", "id-2", "id-3"}
-    # Each gets its own directory rather than sharing one.
     assert len({ch.path for ch in challenges}) == 3
 
-    # Re-syncing matches on the remote id, so nothing is duplicated.
     asyncio.run(add_remote_challenges(client, ctf, remote))
     assert len(get_challenges()) == 3
 
 
 def test_local_ctf_ignores_ambient_platform_credentials(monkeypatch):
-    """Exported PWNV_CTF_* must not block `ctf add --local`."""
     monkeypatch.setenv("PWNV_CTF_USERNAME", "player")
     monkeypatch.setenv("PWNV_CTF_PASSWORD", "hunter2")
 
@@ -541,7 +509,6 @@ def test_local_ctf_ignores_ambient_platform_credentials(monkeypatch):
 
 
 def test_empty_selector_reports_instead_of_raising():
-    """An empty candidate list must not surface InquirerPy's InvalidArgument."""
     from pwnv.utils.ui import prompt_challenge_selection
 
     with pytest.raises(typer.Exit) as excinfo:
@@ -550,7 +517,6 @@ def test_empty_selector_reports_instead_of_raising():
 
 
 def test_remove_commands_are_scriptable():
-    """`--yes` lets removal run unattended."""
     ctf = CTF(name="ScriptCTF", path=get_ctfs_path() / "scriptctf")
     add_ctf(ctf)
     challenge = Challenge(
@@ -574,7 +540,6 @@ def test_remove_commands_are_scriptable():
 
 
 def test_search_with_only_a_scope_lists_that_scope():
-    """`challenge search --ctf X` must list X, not return nothing."""
     ctf = CTF(name="ScopeCTF", path=get_ctfs_path() / "scopectf")
     add_ctf(ctf)
     add_challenge(
@@ -604,7 +569,6 @@ def test_search_with_only_a_scope_lists_that_scope():
 
 
 def _teammate_export(ctf_name: str, ctf_id: str, challenge_name: str) -> dict:
-    """An export as another machine would write it, rooted somewhere else."""
     return {
         "ctfs_path": "/somewhere/else",
         "challenge_tags": [],
@@ -636,13 +600,6 @@ def _teammate_export(ctf_name: str, ctf_id: str, challenge_name: str) -> dict:
 
 
 def test_import_adopts_challenges_of_a_ctf_already_in_the_workspace(tmp_path):
-    """
-    Two people at the same event have the same CTF under two different ids.
-
-    The CTF is skipped as a duplicate, and its challenges used to be skipped
-    with it - they referred to an id this config had never heard of - so the
-    import silently added nothing at all.
-    """
     from pwnv.utils import import_workspace
 
     mine = CTF(name="SharedCTF", path=get_ctfs_path() / "sharedctf")
@@ -664,12 +621,10 @@ def test_import_adopts_challenges_of_a_ctf_already_in_the_workspace(tmp_path):
     assert summary["challenges_added"] == 1
     challenges = get_challenges()
     assert [ch.name for ch in challenges] == ["their-chal"]
-    # Adopted by the CTF that was already here, not by the id in the export.
     assert challenges[0].ctf_id == mine.id
 
 
 def _backup_from_another_machine(tmp_path, old_root: str) -> Path:
-    """Write an archive whose config was recorded under ``old_root``."""
     config = {
         "ctfs_path": old_root,
         "challenge_tags": [],
@@ -723,7 +678,6 @@ def _backup_from_another_machine(tmp_path, old_root: str) -> Path:
 
 
 def test_restore_rebases_downloaded_attachments(tmp_path):
-    """An attachment must point at the copy that travelled with the archive."""
     from pwnv.utils import restore_workspace
 
     archive = _backup_from_another_machine(tmp_path, "/old/machine/CTFs")
@@ -737,7 +691,6 @@ def test_restore_rebases_downloaded_attachments(tmp_path):
 
 
 def test_restoring_something_that_is_not_an_archive_reports_cleanly(tmp_path):
-    """A wrong file must produce a message, not a tarfile traceback."""
     bogus = tmp_path / "notes.tar.gz"
     bogus.write_text("these are notes, not a tarball", encoding="utf-8")
 
@@ -749,7 +702,6 @@ def test_restoring_something_that_is_not_an_archive_reports_cleanly(tmp_path):
 
 
 def test_an_add_that_was_refused_exits_non_zero():
-    """A script running under `set -e` has to notice a command that failed."""
     runner = CliRunner()
     ctf = CTF(name="Dup", path=get_ctfs_path() / "dup")
     add_ctf(ctf)
