@@ -159,8 +159,6 @@ def info_(json_output: bool = JSON) -> None:
     plugins = plugin_manager.get_all_plugins()
 
     if json_output:
-        # Every plugin at once: the rendered view exists to page through them
-        # one at a time, which a caller reading JSON does not need.
         emit_json({"plugins": plugins_payload(plugins)})
         return
 

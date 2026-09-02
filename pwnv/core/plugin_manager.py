@@ -17,7 +17,6 @@ _PLUGIN_MODULE_PREFIX = "pwnv_plugins"
 
 
 def plugin_name(plugin) -> str:
-    """Return the plugin's user-facing name (its file stem)."""
     return plugin.__module__.rpartition(".")[2]
 
 

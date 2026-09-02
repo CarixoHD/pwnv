@@ -188,8 +188,6 @@ def info_(
         raise typer.Exit(code=1)
 
     if json_output:
-        # A picker cannot answer to a pipe, so this reports the scope it was
-        # given rather than asking which challenge was meant.
         if named:
             selection = named
         elif not all and not selected_ctf and (here := get_current_challenge()):
@@ -299,9 +297,6 @@ def search(
     challenges = challenges_for_ctf(selected_ctf) if selected_ctf else get_challenges()
     filters = (category, tag, min_points, max_points, has_service, solved)
     if not query and not any(value is not None and value != [] for value in filters):
-        # A bare `search --ctf X` used to return nothing, because the underlying
-        # helper treats "no query and no filter" as an empty result. Naming a
-        # scope is itself a request to see it.
         matches = list(challenges)
     else:
         matches = search_challenges(
@@ -315,7 +310,6 @@ def search(
             solved=solved,
         )
     if json_output:
-        # An empty result is a legitimate answer to a query, not a warning.
         emit_json({"challenges": challenges_payload(matches)})
         return
 
@@ -422,8 +416,6 @@ def scaffold(
     try:
         chosen_plugin.logic(challenge)
     except Exception as exc:
-        # A plugin run outside its own category can hit assumptions that do not
-        # hold, e.g. a pwn plugin looking for a binary in a web challenge.
         warn(f"Plugin logic failed for {challenge.name}: {exc}")
         raise typer.Exit(code=1) from exc
 

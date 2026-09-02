@@ -27,19 +27,10 @@ def get_templates_directory() -> Path:
 
 
 def get_bundled_examples_directory() -> Path:
-    """Where the plugins and templates that ship with pwnv live."""
     return Path(__file__).resolve().parent.parent / DEFAULT_EXAMPLES_FOLDER_NAME
 
 
 def install_bundled_examples() -> List[Path]:
-    """
-    Seed the workspace with the plugins and templates pwnv ships.
-
-    A fresh workspace with no plugins at all means `pwnv challenge add` only
-    creates an empty directory, which is a poor first impression and gives
-    nothing to copy when writing your own. Files that already exist are skipped
-    rather than overwritten, so this never clobbers an edited plugin.
-    """
     import shutil
 
     source = get_bundled_examples_directory()
@@ -70,7 +61,6 @@ def install_bundled_examples() -> List[Path]:
 
 
 def _apply_bundled_selection(source: Path) -> None:
-    """Select the bundled plugins for categories that have nothing selected."""
     import json
 
     bundled = source / DEFAULT_PLUGINS_FOLDER_NAME / DEFAULT_SELECTION_FILE_NAME

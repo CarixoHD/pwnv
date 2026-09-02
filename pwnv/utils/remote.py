@@ -7,7 +7,7 @@ from typing import Any, Dict, Tuple
 from pwnv.models import CTF, Challenge
 from pwnv.models.challenge import Category
 
-_keyword_map: "list[tuple[str, Category]]" = [
+_keyword_map = [
     ("web exploitation", Category.web),
     ("web exploit", Category.web),
     ("binary exploitation", Category.pwn),
@@ -143,9 +143,7 @@ def _load_credentials(path: Path) -> Dict[str, str | None]:
 
 
 def protect_ctf_secrets(ctf_path: Path) -> None:
-    """
-    Drop a ``.gitignore`` next to a CTF's credentials.
-    """
+    """Drop a ``.gitignore`` next to a CTF's credentials."""
     gitignore = ctf_path / ".gitignore"
     entries = (".env", ".session", ".venv/", ".pwnvenv/")
     try:
@@ -248,11 +246,7 @@ _EMPTY_SUMMARY: Dict[str, Any] = {
 def sync_remote_ctf(
     ctf: CTF, *, refresh_attachments: bool = False, report: bool = True
 ) -> Dict[str, Any] | None:
-    """
-    Fetch new challenges for ``ctf`` from its remote platform.
-
-    Returns a summary of what changed, or ``None`` when the sync failed.
-    """
+    """Fetch new challenges for ``ctf`` and return a summary of what changed."""
     from pwnv.utils.ui import info, warn
 
     if not ctf.url:
@@ -330,21 +324,14 @@ def _retry_with_stored_credentials(client: Any, ctf: CTF):
 
 
 def known_platforms() -> list[str]:
-    """The platform names ctfbridge can be pinned to, in alphabetical order."""
+    """Return the platform names ctfbridge can be pinned to, alphabetical."""
     from ctfbridge.platforms.registry import PLATFORM_CLIENTS
 
     return sorted(PLATFORM_CLIENTS)
 
 
 async def open_client(url: str, platform: str | None = None) -> Any:
-    """
-    Connect to ``url``, detecting the platform unless one was pinned.
-
-    ctfbridge sniffs the platform from the site, and the sniff is a guess: an
-    instance behind a proxy, or one whose landing page was themed, can come out
-    as the wrong platform or as none at all. ``platform`` is the way past that,
-    and it is stored on the CTF so every later sync uses it too.
-    """
+    """Connect to ``url``, detecting the platform unless one was pinned."""
     from ctfbridge import create_client
 
     return await create_client(url=url, platform=platform or "auto")
@@ -420,7 +407,7 @@ def _file_digest(path: Path) -> str | None:
         return None
 
 
-def _fingerprint_attachments(attachments) -> "list[dict]":
+def _fingerprint_attachments(attachments) -> list[dict]:
     """Dump attachments, recording a digest of whatever landed on disk."""
     dumped = []
     for attachment in attachments:
@@ -433,13 +420,7 @@ def _fingerprint_attachments(attachments) -> "list[dict]":
 
 
 def _attachments_are_current(remote, stored) -> bool:
-    """
-    Report whether every published attachment is already on disk, byte for byte.
-
-    Platforms do not publish checksums, so the comparison is against a digest
-    pwnv recorded at download time. Size is checked first because it is free.
-    Re-downloading 40 MB of images on every poll is the thing to avoid here.
-    """
+    """Report whether every attachment is already on disk, byte for byte."""
     if not remote:
         return True
 
@@ -461,7 +442,7 @@ def _attachments_are_current(remote, stored) -> bool:
     return True
 
 
-def _unique_challenge_path(preferred: Path, taken: "list[Challenge]") -> Path:
+def _unique_challenge_path(preferred: Path, taken: list[Challenge]) -> Path:
     """Return ``preferred``, suffixed if another challenge already claims it."""
     claimed = {item.path for item in taken}
     if preferred not in claimed:
@@ -481,12 +462,7 @@ async def add_remote_challenges(
     refresh_attachments: bool = False,
     report: bool = True,
 ) -> Dict[str, Any]:
-    """
-    Create or update fetched challenges and download their attachments.
-
-    Returns a summary of what changed so callers can show a diff instead of
-    replaying every challenge on every sync.
-    """
+    """Create or update fetched challenges and download their attachments."""
     from pwnv.models import Challenge
     from pwnv.models.challenge import Solved
     from pwnv.utils.crud import add_challenge, challenges_for_ctf, update_challenge

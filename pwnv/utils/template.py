@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
@@ -63,7 +62,8 @@ def _resolve_template_value(context: dict[str, Any], key: str) -> Any | None:
 
 
 def render_template(text: str, challenge: Challenge) -> str:
-    """Replace {{placeholders}} in template text using challenge metadata."""
+    import json
+
     context = _build_template_context(challenge)
 
     def _replace(match: re.Match[str]) -> str:

@@ -17,17 +17,6 @@ _diagnostic_console: "Console | None" = None
 
 
 def _diagnostics() -> "Console":
-    """
-    The console that notices, warnings and errors are written on.
-
-    stdout is a data channel: ``pwncd`` expands to ``cd "$(pwnv challenge
-    path)"`` and ``--json`` output gets piped into other tools, so a passing
-    remark on stdout corrupts the result. Diagnostics go to stderr instead,
-    where a human still sees them and a parser does not.
-
-    ``stderr=True`` resolves ``sys.stderr`` on every write, so the redirect in
-    :func:`prompt_on_tty` and the capture in tests both keep working.
-    """
     global _diagnostic_console
 
     if _diagnostic_console is None:
@@ -100,14 +89,7 @@ _stdout_is_captured = False
 
 @contextmanager
 def prompt_on_tty() -> Generator[IO[str]]:
-    """
-    Route prompts and messages to the terminal, yielding the untouched stdout.
-
-    ``pwncd`` expands to ``cd "$(pwnv challenge path)"``, so stdout is a pipe. A
-    selector drawn there would be captured instead of displayed and the shell
-    would look like it hung, so the interface goes to the tty and only the
-    answer is written to stdout.
-    """
+    # pwncd pipes stdout; the UI goes to the tty, only the answer to stdout
     global _stdout_is_captured
 
     import contextlib
@@ -125,13 +107,6 @@ def prompt_on_tty() -> Generator[IO[str]]:
 
 @contextmanager
 def _prompt_session() -> Generator[None]:
-    """
-    Draw the next prompt on the terminal when stdout has been captured.
-
-    Claiming the tty is deferred until something actually prompts: doing it up
-    front makes prompt_toolkit complain about a non-interactive stdin on every
-    `pwncd`, which resolves without asking anything most of the time.
-    """
     import contextlib
 
     if not _stdout_is_captured:
@@ -221,7 +196,6 @@ def prompt_text(msg: str, **kwargs) -> str:
 
 
 def format_service(service: dict) -> str:
-    """Render one fetched service as the string you would actually connect with."""
     if not isinstance(service, dict):
         return str(service)
     if service.get("url"):
@@ -233,12 +207,6 @@ def format_service(service: dict) -> str:
 
 
 def render_sync_summary(ctf_name: str, summary: dict, *, quiet: bool = False) -> None:
-    """
-    Print what a sync changed rather than replaying the whole scoreboard.
-
-    During a live event the interesting part is the delta: what unlocked, what
-    got repriced by dynamic scoring, and what a teammate already solved.
-    """
     from rich import print
 
     added = summary.get("added") or []

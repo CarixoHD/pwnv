@@ -1,18 +1,9 @@
-"""Helpers for resolving explicit or interactive CLI selections."""
-
 from typing import List, Sequence
 
 from pwnv.models import Challenge
 
 
 def _narrow_to_likeliest(matches: List[Challenge]) -> List[Challenge]:
-    """
-    Drop matches you almost certainly did not mean.
-
-    Names collide constantly across CTFs - every event has a "sanity" and half
-    of them have a "baby rop". The CTF you are standing in wins, then running
-    CTFs, and only a genuine tie reaches the picker.
-    """
     from pwnv.utils.crud import get_current_ctf, get_running_ctfs
 
     if len(matches) < 2:
@@ -27,7 +18,6 @@ def _narrow_to_likeliest(matches: List[Challenge]) -> List[Challenge]:
 
 
 def _matching(scope: Sequence[Challenge], name: str) -> List[Challenge]:
-    """Find challenges called ``name``, loosening the comparison as needed."""
     from pwnv.utils.remote import sanitize
 
     needle = name.strip()
@@ -52,7 +42,6 @@ def resolve_challenge(
     challenges: Sequence[Challenge] | None = None,
     prompt: str = "Select a challenge:",
 ) -> Challenge:
-    """Resolve a challenge by scope, current directory, or interactive selection."""
     import typer
 
     from pwnv.utils.crud import (

@@ -1,11 +1,4 @@
-"""Canonical JSON shapes for the objects the CLI reports on.
-
-Every ``--json`` flag renders through here, so a challenge looks the same
-whether it arrived from ``challenge info``, ``challenge search`` or something
-written later. The values are plain JSON types - enums by name, ids and paths as
-strings, solve state as a bool - because the reader is another program rather
-than a person.
-"""
+"""Canonical JSON payloads for the CLI's ``--json`` output."""
 
 from __future__ import annotations
 
@@ -22,7 +15,6 @@ def _extras(challenge: Challenge) -> dict:
 
 
 def _mappings(value: Any) -> List[dict]:
-    """Keep the mappings out of a stored list, whatever else ended up in it."""
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
@@ -31,12 +23,7 @@ def _mappings(value: Any) -> List[dict]:
 def challenge_payload(
     challenge: Challenge, *, ctf_names: Dict[Any, str] | None = None
 ) -> Dict[str, Any]:
-    """
-    Render one challenge as JSON-safe data.
-
-    ``ctf_names`` lets a caller resolve the owning CTF once for a whole list
-    instead of rescanning the config per challenge.
-    """
+    """Render one challenge as JSON-safe data; ``ctf_names`` maps CTF ids to names."""
     if ctf_names is None:
         from pwnv.utils.crud import get_ctfs
 
@@ -62,7 +49,7 @@ def challenge_payload(
 
 
 def challenges_payload(challenges: Sequence[Challenge]) -> List[Dict[str, Any]]:
-    """Render a list of challenges, resolving CTF names once."""
+    """Render a list of challenges as JSON-safe data."""
     from pwnv.utils.crud import get_ctfs
 
     ctf_names = {ctf.id: ctf.name for ctf in get_ctfs()}
@@ -84,7 +71,7 @@ def _ctf_payload(ctf: CTF, challenges: int, solved: int) -> Dict[str, Any]:
 
 
 def ctf_payload(ctf: CTF) -> Dict[str, Any]:
-    """Render one CTF, including the challenge counts a caller would tally."""
+    """Render one CTF with its challenge counts."""
     from pwnv.utils.crud import challenges_for_ctf
 
     challenges = challenges_for_ctf(ctf)
@@ -94,13 +81,11 @@ def ctf_payload(ctf: CTF) -> Dict[str, Any]:
 
 
 def ctfs_payload(ctfs: Sequence[CTF]) -> List[Dict[str, Any]]:
-    """Render several CTFs, counting the challenge list once for all of them."""
+    """Render a list of CTFs with challenge counts."""
     from collections import Counter
 
     from pwnv.utils.crud import get_challenges
 
-    # `challenges_for_ctf` rebuilds every challenge in the workspace from the
-    # config, so calling it per CTF made this quadratic in the number of records.
     challenges = get_challenges()
     totals = Counter(item.ctf_id for item in challenges)
     solved = Counter(item.ctf_id for item in challenges if item.solved)
@@ -124,14 +109,14 @@ def _plugin_payload(
 
 
 def plugin_payload(plugin: ChallengePlugin) -> Dict[str, Any]:
-    """Render one plugin, minus its source - that is what the file path is for."""
+    """Render one plugin as JSON-safe data."""
     from pwnv.utils.plugin import get_plugin_selection, get_plugins_directory
 
     return _plugin_payload(plugin, get_plugin_selection(), get_plugins_directory())
 
 
 def plugins_payload(plugins: Sequence[ChallengePlugin]) -> List[Dict[str, Any]]:
-    """Render several plugins, reading the selection and the directory once."""
+    """Render a list of plugins as JSON-safe data."""
     from pwnv.utils.plugin import get_plugin_selection, get_plugins_directory
 
     selection = get_plugin_selection()

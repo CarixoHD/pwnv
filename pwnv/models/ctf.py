@@ -18,6 +18,4 @@ class CTF(BaseModel):
     path: Path
     running: Status = Status.running
     url: str | None = None
-    # The platform ctfbridge should talk to, when its own detection got it
-    # wrong. ``None`` means "detect", which is right for almost every event.
     platform: str | None = None

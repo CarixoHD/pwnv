@@ -1,12 +1,4 @@
 def _guard(predicate, msg, *, empty_is_data=False):
-    """
-    Refuse to run a command whose precondition is not met.
-
-    ``empty_is_data`` marks a guard that only checks for records to report on.
-    Those commands still run under ``--json``, because the JSON contract says an
-    empty workspace is an empty list and exit code 0, not an error - a script
-    piping into `jq` should not have to tell "nothing here" apart from a crash.
-    """
     from functools import wraps
 
     import typer
@@ -52,9 +44,6 @@ def challenges_exists():
 
 def plugins_exists():
     def _any_plugins() -> bool:
-        # Resolved per call rather than when the decorator is built: the manager
-        # is a singleton, and binding it at import time would pin the guard to
-        # whichever instance existed when the command module was first loaded.
         from pwnv.core import plugin_manager
 
         return bool(plugin_manager.get_all_plugins())

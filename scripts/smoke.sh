@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
-#
 # End-to-end check of the installed `pwnv` command.
-#
-# The test suite runs from the source tree with a monkeypatched config, so it
-# never sees the two things that break for a user first: files that did not make
-# it into the wheel, and commands that only work when a real workspace is on
-# disk. This drives the actual binary through a full lifecycle instead - set up,
-# add, inspect, back up, move to a second machine - and asserts on the files and
-# JSON that come out.
-#
 # Usage: scripts/smoke.sh [python-version]
 set -euo pipefail
 
@@ -33,10 +24,7 @@ exists() {
   fi
 }
 
-# Assert that a JSON document satisfies a Python expression, with the parsed
-# document bound to `d`. The document is an argument rather than stdin: a shell
-# function on the right of a pipe runs in a subshell, so every failure it
-# counted would be discarded when that subshell exits.
+# The document is an argument: piping into the function would run it in a subshell and drop FAILURES.
 expect_json() {
   local description="$1" expression="$2" document="$3"
   if printf '%s' "$document" |
@@ -63,8 +51,6 @@ pwnv init --yes --no-install --python "$PYTHON_VERSION" --ctfs-folder "$CTFS"
 
 exists "$PWNV_CONFIG" "config written"
 exists "$CTFS/.pwnvenv" "CTF environment created"
-# The bundled examples live in package data. If a packaging change drops them,
-# every test still passes and `pwnv init` silently stops shipping templates.
 exists "$WORKDIR/old/templates" "templates folder created"
 if compgen -G "$WORKDIR/old/templates/*" >/dev/null; then
   ok "bundled templates installed from package data"
@@ -77,8 +63,6 @@ else
   fail "bundled plugins installed from package data"
 fi
 
-# Assert that a command fails, and says why. `set -e` would otherwise abort the
-# run on the first refusal, which is exactly the behaviour being checked here.
 expect_failure() {
   local description="$1"
   shift
@@ -96,7 +80,6 @@ step "ctf add / challenge add"
 pwnv ctf add smoke --local
 pwnv challenge add babyrop --ctf smoke --category pwn
 
-# A refusal has to be visible to `set -e`, not just to the person reading along.
 expect_failure "adding the same CTF twice fails" pwnv ctf add smoke --local
 expect_failure "an unknown platform is rejected" \
   pwnv ctf add other --url https://ctf.invalid --platform notaplatform
@@ -169,7 +152,6 @@ esac
 exists "$NEW_DIR/NOTES.md" "notes travelled with the archive"
 exists "$NEW_DIR/solve.py" "solve script travelled with the archive"
 
-# Restoring the same archive twice must not duplicate anything.
 pwnv workspace restore "$WORKDIR/move.tar.gz" >/dev/null
 STATUS_JSON="$(pwnv status --json)"
 expect_json "restoring twice is a no-op" \

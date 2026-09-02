@@ -1,10 +1,9 @@
-"""Markdown challenge notes."""
-
-from datetime import datetime
-
 import typer
 
-from pwnv.utils import challenges_exists, config_exists
+from pwnv.utils import (
+    challenges_exists,
+    config_exists,
+)
 
 app = typer.Typer(no_args_is_help=True, help="Manage challenge notes.")
 
@@ -18,7 +17,9 @@ def add(
     challenge_name: str | None = typer.Option(None, "--challenge"),
     ctf: str | None = typer.Option(None, "--ctf"),
 ) -> None:
-    """Append a timestamped entry to a challenge's NOTES.md file."""
+    """Appends a timestamped entry to a challenge's NOTES.md file."""
+    from datetime import datetime
+
     from pwnv.utils import resolve_challenge, success
 
     challenge = resolve_challenge(challenge_name=challenge_name, ctf_name=ctf)
@@ -38,7 +39,7 @@ def show(
     challenge_name: str | None = typer.Option(None, "--challenge"),
     ctf: str | None = typer.Option(None, "--ctf"),
 ) -> None:
-    """Render a challenge's NOTES.md file."""
+    """Renders a challenge's NOTES.md file."""
     from rich.console import Console
     from rich.markdown import Markdown
 

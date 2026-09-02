@@ -1,5 +1,3 @@
-"""Workspace health checks."""
-
 import typer
 
 from pwnv.utils import config_exists
@@ -10,7 +8,7 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 @config_exists()
 def doctor() -> None:
-    """Check configuration, paths, tools, and workspace consistency."""
+    """Checks configuration, paths, tools, and workspace consistency."""
     import shutil
 
     from pydantic import ValidationError

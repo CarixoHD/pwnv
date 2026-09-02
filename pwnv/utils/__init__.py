@@ -97,6 +97,7 @@ from pwnv.utils.workspace import (
 )
 
 __all__ = [
+    # serialize
     "challenge_payload",
     "challenges_payload",
     "ctf_payload",
@@ -146,6 +147,7 @@ __all__ = [
     "remote_solve",
     "sanitize",
     "sync_remote_ctf",
+    # selection
     "resolve_challenge",
     # ui
     "prompt_confirm",
