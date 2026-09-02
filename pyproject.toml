@@ -13,6 +13,11 @@ authors = [
   {name = "Shayan Alinejad", email = "shayan.alinejad@proton.me"}
 ]
 keywords = ["ctf", "pwn", "rev", "management", "cli", "ctfd", "rctf", "tool", "workspace", "automation", "workflow", "challenges"]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
 requires-python = ">=3.12"
 dependencies = [
     # Imported directly, to resolve the config directory without typer.
