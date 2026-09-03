@@ -89,14 +89,9 @@ non-zero — so a script cannot mistake a wrong flag for a solve.
 pwnv status --detail
 ```
 
-```
-                        pwnv workspace
-┌─────────┬─────────┬────────┬────────┬──────────┬────────────┐
-│ CTF     │ Status  │ Kind   │ Solved │   Points │ Categories │
-├─────────┼─────────┼────────┼────────┼──────────┼────────────┤
-│ DemoCTF │ running │ remote │   4/23 │ 950/3200 │ pwn, web   │
-└─────────┴─────────┴────────┴────────┴──────────┴────────────┘
-```
+| CTF     | Status  | Kind   | Solved | Points   | Categories |
+| ------- | ------- | ------ | -----: | -------: | ---------- |
+| DemoCTF | running | remote |   4/23 | 950/3200 | pwn, web   |
 
 `--detail` adds per-category progress, recent solves, and what is left. Add
 `--json` to get the same numbers as data.
