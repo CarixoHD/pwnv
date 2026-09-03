@@ -90,12 +90,12 @@ pwnv status --detail
 ```
 
 ```
-                       pwnv workspace
-┏━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━┓
-┃ CTF     ┃ Status  ┃ Kind   ┃ Solved ┃ Points ┃ Categories ┃
-┡━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━┩
-│ DemoCTF │ running │ remote │   4/23 │    950 │ pwn, web   │
-└─────────┴─────────┴────────┴────────┴────────┴────────────┘
+                        pwnv workspace
+┌─────────┬─────────┬────────┬────────┬──────────┬────────────┐
+│ CTF     │ Status  │ Kind   │ Solved │   Points │ Categories │
+├─────────┼─────────┼────────┼────────┼──────────┼────────────┤
+│ DemoCTF │ running │ remote │   4/23 │ 950/3200 │ pwn, web   │
+└─────────┴─────────┴────────┴────────┴──────────┴────────────┘
 ```
 
 `--detail` adds per-category progress, recent solves, and what is left. Add
